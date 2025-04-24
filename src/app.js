@@ -6,16 +6,19 @@ import { CliffordQCA } from './simulation/automaton.js';
 import { pauliStringToF2 } from './simulation/clifford.js';
 import { SimulationControls, RuleMatrixEditor } from './ui/controls.js';
 import { MainLayout, Section, TwoColumnLayout } from './ui/layout.js';
-import { renderSpacetimeDiagram, renderCurrentState } from './visualization/spacetime.js';
+import { renderSpacetimeDiagram, renderCurrentState, resetSpacetimeDiagram } from './visualization/spacetime.js';
 
 export function App() {
     const [qca, setQca] = useState(new CliffordQCA());
     const [ruleMatrix, setRuleMatrix] = useState(qca.ruleMatrix);
     const [history, setHistory] = useState([]);
     const [simulationParams, setSimulationParams] = useState(null);
+    const [currentStep, setCurrentStep] = useState(0);
+    const [isRunning, setIsRunning] = useState(false);
     
     const currentStateRef = useRef(null);
     const spacetimeDiagramRef = useRef(null);
+    const timeoutRef = useRef(null);
     
     // Initialize QCA when rule matrix changes
     useEffect(() => {
@@ -26,9 +29,18 @@ export function App() {
         setQca(newQca);
     }, [ruleMatrix]);
     
-    // Run simulation when parameters change
+    // Set up simulation when parameters change
     useEffect(() => {
         if (!simulationParams) return;
+        
+        // Cancel any ongoing animation
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        
+        // Reset visualization state
+        resetSpacetimeDiagram();
         
         const { 
             latticeSize, 
@@ -68,20 +80,52 @@ export function App() {
             }
         }
         
-        // Run simulation for specified time steps
-        newQca.run(timeSteps);
-        
-        // Update state with the new QCA and history
+        // Initialize with just the first state
         setQca(newQca);
-        setHistory(newQca.getHistory());
+        setHistory([newQca.getState()]);
+        setCurrentStep(0);
+        setIsRunning(true); // Automatically start the incremental animation
         
-    }, [simulationParams]);
+    }, [simulationParams, ruleMatrix]);
+    
+    // Incremental animation effect
+    useEffect(() => {
+        if (!isRunning || !simulationParams) return;
+        
+        // If we've reached the target number of steps, stop
+        if (currentStep >= simulationParams.timeSteps) {
+            setIsRunning(false);
+            return;
+        }
+        
+        // Schedule the next step (200ms delay between steps)
+        timeoutRef.current = setTimeout(() => {
+            // Take one step in the simulation
+            qca.step();
+            
+            // Update history with the new state
+            const newHistory = [...history, qca.getState()];
+            setHistory(newHistory);
+            setCurrentStep(currentStep + 1);
+            
+        }, 200); // Animation speed (in milliseconds)
+        
+        // Cleanup on unmount or when running state changes
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+        };
+    }, [isRunning, currentStep, qca, history, simulationParams]);
     
     // Render visualization when history changes
     useEffect(() => {
         if (history.length > 0 && currentStateRef.current && spacetimeDiagramRef.current) {
-            // Use responsive rendering without fixed cell sizes
-            renderCurrentState('current-state', history[0]);
+            // Render current state (always the last item in history)
+            renderCurrentState('current-state', history[history.length - 1]);
+            
+            // Render spacetime diagram with all accumulated history
             renderSpacetimeDiagram('spacetime-diagram', history);
         }
     }, [history]);
@@ -91,8 +135,20 @@ export function App() {
     };
     
     const handleResetSimulation = () => {
+        // Stop any running animation
+        setIsRunning(false);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        
+        // Reset visualization state
+        resetSpacetimeDiagram();
+        
+        // Reset QCA to initial state
         qca.reset();
         setHistory([qca.getState()]);
+        setCurrentStep(0);
     };
     
     const handleRuleMatrixChange = (newMatrix) => {

@@ -44,18 +44,22 @@ export const SECONDARY_COLORS = {
 };
 
 /**
- * Multiply two Pauli operators using F2 arithmetic
+ * Multiply two Pauli operators in F2 representation
  * 
  * @param {Array} a - First Pauli operator as [x,z]
  * @param {Array} b - Second Pauli operator as [x,z]
- * @returns {Array} - Resulting Pauli operator
+ * @returns {Array} - Result of multiplication as [x,z]
  */
 export function multiplyPauli(a, b) {
-    // XOR for addition in F2
-    return [
-        (a[0] + b[0]) % 2,
-        (a[1] + b[1]) % 2
-    ];
+    // Multiply Pauli operators using binary arithmetic
+    const [ax, az] = a;
+    const [bx, bz] = b;
+    
+    // XOR the bits
+    const resultX = (ax + bx) % 2;
+    const resultZ = (az + bz) % 2;
+    
+    return [resultX, resultZ];
 }
 
 /**

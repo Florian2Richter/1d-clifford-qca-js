@@ -20,21 +20,21 @@ export function SimulationControls({
     onRunSimulation, 
     onResetSimulation, 
     defaultSize = 20, 
-    defaultSteps = 20 
+    defaultSteps = 50 
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
     const [initialStateType, setInitialStateType] = useState('single-x');
     const [initialPosition, setInitialPosition] = useState(Math.floor(defaultSize / 2));
-    const [customPauliString, setCustomPauliString] = useState('');
+    const [customPauliString, setCustomPauliString] = useState('X');
     
     const handleRunSimulation = () => {
         if (onRunSimulation) {
             onRunSimulation({
-                latticeSize,
-                timeSteps,
+                latticeSize: parseInt(latticeSize) || 20,
+                timeSteps: parseInt(timeSteps) || 50,
                 initialStateType,
-                initialPosition,
+                initialPosition: parseInt(initialPosition) || 0,
                 customPauliString
             });
         }
@@ -43,6 +43,41 @@ export function SimulationControls({
     const handleResetSimulation = () => {
         if (onResetSimulation) {
             onResetSimulation();
+        }
+    };
+    
+    // Handler to safely update lattice size
+    const handleLatticeSize = (value) => {
+        const parsedValue = parseInt(value);
+        if (!isNaN(parsedValue) && parsedValue > 0) {
+            setLatticeSize(parsedValue);
+            // Update initial position if needed
+            if (initialStateType === 'single-x' && initialPosition >= parsedValue) {
+                setInitialPosition(parsedValue - 1);
+            }
+        } else {
+            setLatticeSize('');
+        }
+    };
+    
+    // Handler to safely update time steps
+    const handleTimeSteps = (value) => {
+        const parsedValue = parseInt(value);
+        if (!isNaN(parsedValue) && parsedValue > 0) {
+            setTimeSteps(parsedValue);
+        } else {
+            setTimeSteps('');
+        }
+    };
+    
+    // Handler to safely update initial position
+    const handleInitialPosition = (value) => {
+        const parsedValue = parseInt(value);
+        const maxPos = parseInt(latticeSize) - 1 || 19;
+        if (!isNaN(parsedValue) && parsedValue >= 0 && parsedValue <= maxPos) {
+            setInitialPosition(parsedValue);
+        } else {
+            setInitialPosition('');
         }
     };
     
@@ -55,10 +90,10 @@ export function SimulationControls({
                 <input
                     id="lattice-size"
                     type="number"
-                    min="5"
+                    min="2"
                     max="100"
                     value={latticeSize}
-                    onChange={(e) => setLatticeSize(parseInt(e.target.value, 10))}
+                    onChange={(e) => handleLatticeSize(e.target.value)}
                 />
             </div>
             
@@ -70,7 +105,7 @@ export function SimulationControls({
                     min="1"
                     max="100"
                     value={timeSteps}
-                    onChange={(e) => setTimeSteps(parseInt(e.target.value, 10))}
+                    onChange={(e) => handleTimeSteps(e.target.value)}
                 />
             </div>
             
@@ -117,9 +152,9 @@ export function SimulationControls({
                         id="initial-position"
                         type="number"
                         min="0"
-                        max={latticeSize - 1}
+                        max={parseInt(latticeSize) - 1 || 19}
                         value={initialPosition}
-                        onChange={(e) => setInitialPosition(parseInt(e.target.value, 10))}
+                        onChange={(e) => handleInitialPosition(e.target.value)}
                     />
                 </div>
             )}
@@ -139,16 +174,10 @@ export function SimulationControls({
             )}
             
             <div className="button-group">
-                <button 
-                    className="run-button" 
-                    onClick={handleRunSimulation}
-                >
+                <button className="run-button" onClick={handleRunSimulation}>
                     Run Simulation
                 </button>
-                <button 
-                    className="reset-button" 
-                    onClick={handleResetSimulation}
-                >
+                <button className="reset-button" onClick={handleResetSimulation}>
                     Reset
                 </button>
             </div>

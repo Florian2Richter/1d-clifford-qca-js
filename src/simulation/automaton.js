@@ -55,8 +55,8 @@ export class CliffordQCA {
         if (state.length !== this.size) {
             throw new Error(`State must have ${this.size} elements`);
         }
-        this.state = [...state];
-        this.history = [this.state]; // Reset history with new initial state
+        this.state = state.map(pauli => [...pauli]); // Deep copy the state
+        this.history = [this.state.map(pauli => [...pauli])]; // Reset history with new initial state
     }
 
     /**
@@ -69,8 +69,8 @@ export class CliffordQCA {
             throw new Error(`Position must be between 0 and ${this.size - 1}`);
         }
         
-        const newState = Array(this.size).fill(PAULI.I);
-        newState[position] = PAULI.X;
+        const newState = Array(this.size).fill().map(() => [...PAULI.I]);
+        newState[position] = [...PAULI.X];
         this.setState(newState);
     }
 
@@ -80,7 +80,7 @@ export class CliffordQCA {
     setRandomState() {
         const pauliValues = [PAULI.I, PAULI.X, PAULI.Z, PAULI.Y];
         const newState = Array(this.size).fill().map(() => {
-            return pauliValues[Math.floor(Math.random() * 4)];
+            return [...pauliValues[Math.floor(Math.random() * 4)]];
         });
         this.setState(newState);
     }
@@ -138,9 +138,9 @@ export class CliffordQCA {
         });
         
         this.state = newState;
-        this.history.push([...this.state]);
+        this.history.push(newState.map(pauli => [...pauli])); // Deep copy to history
         
-        return this.state;
+        return [...this.state]; // Return a copy of the new state
     }
 
     /**
@@ -161,7 +161,7 @@ export class CliffordQCA {
      * @returns {Array} - Current state
      */
     getState() {
-        return [...this.state];
+        return this.state.map(pauli => [...pauli]);
     }
 
     /**
@@ -170,14 +170,14 @@ export class CliffordQCA {
      * @returns {Array} - History of states
      */
     getHistory() {
-        return [...this.history];
+        return this.history.map(state => state.map(pauli => [...pauli]));
     }
 
     /**
      * Reset the automaton to all identity operators
      */
     reset() {
-        this.state = Array(this.size).fill(PAULI.I);
-        this.history = [this.state];
+        this.state = Array(this.size).fill().map(() => [...PAULI.I]);
+        this.history = [this.state.map(pauli => [...pauli])];
     }
 } 
