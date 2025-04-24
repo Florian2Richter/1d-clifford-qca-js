@@ -13,9 +13,13 @@ export function App() {
     const [ruleMatrix, setRuleMatrix] = useState(qca.ruleMatrix);
     const [history, setHistory] = useState([]);
     const [simulationParams, setSimulationParams] = useState(null);
+    const [currentStep, setCurrentStep] = useState(0);
+    const [isRunning, setIsRunning] = useState(false);
+    const [animationSpeed, setAnimationSpeed] = useState(200); // ms per step
     
     const currentStateRef = useRef(null);
     const spacetimeDiagramRef = useRef(null);
+    const animationRef = useRef(null);
     
     // Initialize QCA when rule matrix changes
     useEffect(() => {
@@ -26,9 +30,15 @@ export function App() {
         setQca(newQca);
     }, [ruleMatrix]);
     
-    // Run simulation when parameters change
+    // Reset simulation and prepare initial state
     useEffect(() => {
         if (!simulationParams) return;
+        
+        // Stop any running animation
+        if (animationRef.current) {
+            clearTimeout(animationRef.current);
+            animationRef.current = null;
+        }
         
         const { 
             latticeSize, 
@@ -68,35 +78,144 @@ export function App() {
             }
         }
         
-        // Run simulation for specified time steps
-        newQca.run(timeSteps);
-        
-        // Update state with the new QCA and history
+        // Initialize history with just the initial state
         setQca(newQca);
-        setHistory(newQca.getHistory());
+        setHistory([newQca.getState()]);
+        setCurrentStep(0);
+        
+        // If auto-start is enabled, begin animation
+        if (simulationParams.autoStart) {
+            setIsRunning(true);
+        }
         
     }, [simulationParams]);
+    
+    // Animation effect - step through the simulation
+    useEffect(() => {
+        if (!isRunning || !simulationParams) return;
+        
+        // Stop if we've reached the desired number of time steps
+        if (currentStep >= simulationParams.timeSteps) {
+            setIsRunning(false);
+            return;
+        }
+        
+        // Schedule the next step
+        animationRef.current = setTimeout(() => {
+            // Take one step in the simulation
+            qca.step();
+            
+            // Update history with the new state
+            const newHistory = [...history, qca.getState()];
+            setHistory(newHistory);
+            setCurrentStep(currentStep + 1);
+            
+        }, animationSpeed);
+        
+        // Clean up on unmount or when dependencies change
+        return () => {
+            if (animationRef.current) {
+                clearTimeout(animationRef.current);
+                animationRef.current = null;
+            }
+        };
+    }, [isRunning, currentStep, qca, history, simulationParams, animationSpeed]);
     
     // Render visualization when history changes
     useEffect(() => {
         if (history.length > 0 && currentStateRef.current && spacetimeDiagramRef.current) {
-            // Use responsive rendering without fixed cell sizes
-            renderCurrentState('current-state', history[0]);
+            // Render current state (always the last item in history)
+            renderCurrentState('current-state', history[history.length - 1]);
+            
+            // Render spacetime diagram with the entire history so far
             renderSpacetimeDiagram('spacetime-diagram', history);
         }
     }, [history]);
     
     const handleRunSimulation = (params) => {
-        setSimulationParams(params);
+        // We now only set up the simulation parameters; actual running is managed by the animation effect
+        setSimulationParams({
+            ...params,
+            autoStart: true
+        });
+    };
+    
+    const handleStepSimulation = () => {
+        if (currentStep < simulationParams?.timeSteps && !isRunning) {
+            qca.step();
+            const newHistory = [...history, qca.getState()];
+            setHistory(newHistory);
+            setCurrentStep(currentStep + 1);
+        }
+    };
+    
+    const handleToggleSimulation = () => {
+        setIsRunning(!isRunning);
     };
     
     const handleResetSimulation = () => {
-        qca.reset();
-        setHistory([qca.getState()]);
+        // Stop any animation
+        setIsRunning(false);
+        if (animationRef.current) {
+            clearTimeout(animationRef.current);
+            animationRef.current = null;
+        }
+        
+        // Reset the QCA to initial state
+        if (simulationParams) {
+            const { 
+                latticeSize, 
+                initialStateType, 
+                initialPosition, 
+                customPauliString 
+            } = simulationParams;
+            
+            // Create new QCA with updated size
+            const newQca = new CliffordQCA(latticeSize, ruleMatrix);
+            
+            // Set initial state based on type
+            if (initialStateType === 'single-x') {
+                newQca.setSingleX(initialPosition);
+            } else if (initialStateType === 'random') {
+                newQca.setRandomState();
+            } else if (initialStateType === 'custom') {
+                try {
+                    // Validate and pad/truncate custom string as needed
+                    let pauliArray;
+                    if (customPauliString.length === latticeSize) {
+                        pauliArray = pauliStringToF2(customPauliString);
+                    } else if (customPauliString.length < latticeSize) {
+                        // Pad with 'I' if too short
+                        const paddedString = customPauliString.padEnd(latticeSize, 'I');
+                        pauliArray = pauliStringToF2(paddedString);
+                    } else {
+                        // Truncate if too long
+                        const truncatedString = customPauliString.substring(0, latticeSize);
+                        pauliArray = pauliStringToF2(truncatedString);
+                    }
+                    newQca.setState(pauliArray);
+                } catch (error) {
+                    console.error('Invalid Pauli string:', error);
+                    newQca.reset(); // Reset to all identity if invalid
+                }
+            }
+            
+            setQca(newQca);
+            setHistory([newQca.getState()]);
+            setCurrentStep(0);
+        } else {
+            qca.reset();
+            setHistory([qca.getState()]);
+            setCurrentStep(0);
+        }
     };
     
     const handleRuleMatrixChange = (newMatrix) => {
         setRuleMatrix(newMatrix);
+    };
+    
+    const handleSpeedChange = (newSpeed) => {
+        setAnimationSpeed(newSpeed);
     };
     
     return (
@@ -121,6 +240,13 @@ export function App() {
                             <SimulationControls
                                 onRunSimulation={handleRunSimulation}
                                 onResetSimulation={handleResetSimulation}
+                                onStepSimulation={handleStepSimulation}
+                                onToggleSimulation={handleToggleSimulation}
+                                onSpeedChange={handleSpeedChange}
+                                isRunning={isRunning}
+                                currentStep={currentStep}
+                                maxSteps={simulationParams?.timeSteps || 0}
+                                animationSpeed={animationSpeed}
                             />
                         </Section>
                         

@@ -48,14 +48,6 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
     const width = latticeSize * actualCellSize;
     const height = timeSteps * actualCellSize;
     
-    // Create tooltip element
-    const tooltip = d3.select('body')
-        .append('div')
-        .attr('class', 'tooltip')
-        .style('opacity', 0)
-        .style('position', 'absolute')
-        .style('pointer-events', 'none');
-    
     // Create SVG element with responsive attributes
     const svg = container
         .append('svg')
@@ -87,9 +79,13 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
     const cells = svg.append('g')
         .attr('class', 'cells');
     
-    // Draw grid lines
+    // Draw grid lines (simplified, only draw if cell size is large enough)
     if (actualCellSize > 3) {
-        for (let t = 0; t <= timeSteps; t++) {
+        // Draw fewer grid lines for better performance
+        const tStep = Math.max(1, Math.floor(timeSteps / 50));
+        const xStep = Math.max(1, Math.floor(latticeSize / 50));
+        
+        for (let t = 0; t <= timeSteps; t += tStep) {
             grid.append('line')
                 .attr('x1', 0)
                 .attr('y1', t * actualCellSize)
@@ -99,7 +95,7 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
                 .attr('stroke-width', 0.5);
         }
         
-        for (let x = 0; x <= latticeSize; x++) {
+        for (let x = 0; x <= latticeSize; x += xStep) {
             grid.append('line')
                 .attr('x1', x * actualCellSize)
                 .attr('y1', 0)
@@ -110,147 +106,75 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
         }
     }
     
-    // Create cells for each time step and position
+    // Create cells for each time step and position (simplified, without interactive features)
     for (let t = 0; t < timeSteps; t++) {
         for (let x = 0; x < latticeSize; x++) {
             const pauli = history[t][x];
             const pauliLabel = getPauliLabel(pauli);
             const color = getPauliColor(pauli);
             
-            // Cell rectangle
-            const cell = cells.append('rect')
+            // Simple cell rectangle without hover effects or interactions
+            cells.append('rect')
                 .attr('x', x * actualCellSize)
                 .attr('y', t * actualCellSize)
                 .attr('width', actualCellSize)
                 .attr('height', actualCellSize)
                 .attr('fill', pauliLabel === 'I' ? 'url(#identityPattern)' : color)
                 .attr('stroke', '#EEEEEE')
-                .attr('stroke-width', 0.5)
-                .attr('rx', pauliLabel !== 'I' ? 2 : 0)
-                .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
-                .style('cursor', 'pointer')
-                .style('transition', 'opacity 0.2s, transform 0.2s');
+                .attr('stroke-width', 0.5);
             
-            // Add hover effects
-            cell.on('mouseover', function(event) {
-                d3.select(this)
-                    .attr('opacity', 1)
-                    .attr('stroke', SECONDARY_COLORS.highlight)
-                    .attr('stroke-width', 1.5);
-                
-                tooltip.transition()
-                    .duration(200)
-                    .style('opacity', 0.9);
-                
-                tooltip.html(`
-                    <div style="font-weight: bold; margin-bottom: 5px;">
-                        Position: ${x}, Time: ${t}
-                    </div>
-                    <div style="display: flex; align-items: center;">
-                        <div style="
-                            width: 12px; 
-                            height: 12px; 
-                            background-color: ${color}; 
-                            margin-right: 5px;
-                            border-radius: 2px;
-                        "></div>
-                        <span>State: ${pauliLabel}</span>
-                    </div>
-                `)
-                    .style('left', (event.pageX + 10) + 'px')
-                    .style('top', (event.pageY - 28) + 'px');
-            })
-            .on('mouseout', function() {
-                d3.select(this)
-                    .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
-                    .attr('stroke', '#EEEEEE')
-                    .attr('stroke-width', 0.5);
-                
-                tooltip.transition()
-                    .duration(500)
-                    .style('opacity', 0);
-            });
-            
-            // Add Pauli label if cell is big enough
-            if (pauliLabel !== 'I' && actualCellSize > 14) {
+            // Add Pauli label only for larger cells and non-identity operators
+            if (pauliLabel !== 'I' && actualCellSize > 16) {
                 cells.append('text')
                     .attr('x', x * actualCellSize + actualCellSize / 2)
                     .attr('y', t * actualCellSize + actualCellSize / 2)
                     .attr('text-anchor', 'middle')
                     .attr('dominant-baseline', 'middle')
-                    .style('font-size', `${Math.min(12, actualCellSize / 2.5)}px`)
+                    .style('font-size', `${Math.min(10, actualCellSize / 3)}px`)
                     .style('font-weight', '500')
-                    .style('user-select', 'none')
-                    .style('pointer-events', 'none')
                     .style('fill', pauliLabel === 'Y' ? '#333' : '#FFF')
                     .text(pauliLabel);
             }
         }
     }
     
-    // Add x-axis labels (only if enough space, and every N positions)
-    const labelInterval = Math.max(5, Math.ceil(latticeSize / 20));
-    if (actualCellSize > 10) {
-        const xAxis = svg.append('g')
-            .attr('class', 'x-axis')
-            .attr('transform', `translate(0, ${height + 5})`);
+    // Add minimal axis labels, only if cells are large enough
+    if (actualCellSize > 12) {
+        // Add a minimum number of axis labels for performance
+        const labelInterval = Math.max(10, Math.ceil(latticeSize / 10));
+        const timeInterval = Math.max(10, Math.ceil(timeSteps / 10));
         
+        // X-axis labels (positions)
+        const xAxis = svg.append('g').attr('class', 'x-axis');
         for (let x = 0; x < latticeSize; x += labelInterval) {
             xAxis.append('text')
                 .attr('x', x * actualCellSize + actualCellSize / 2)
-                .attr('y', 10)
+                .attr('y', height + 12)
                 .attr('text-anchor', 'middle')
-                .style('font-size', `${Math.min(10, actualCellSize / 2)}px`)
+                .style('font-size', '10px')
                 .style('fill', SECONDARY_COLORS.text.secondary)
                 .text(x);
         }
         
-        // Add x-axis title
-        xAxis.append('text')
-            .attr('x', width / 2)
-            .attr('y', 25)
-            .attr('text-anchor', 'middle')
-            .style('font-size', '11px')
-            .style('font-weight', '500')
-            .style('fill', SECONDARY_COLORS.text.secondary)
-            .text('Position');
-    }
-    
-    // Add time axis labels (only if enough space, and every N time steps)
-    const timeInterval = Math.max(5, Math.ceil(timeSteps / 20));
-    if (actualCellSize > 10) {
-        const yAxis = svg.append('g')
-            .attr('class', 'y-axis')
-            .attr('transform', 'translate(-5, 0)');
-        
+        // Y-axis labels (time steps)
+        const yAxis = svg.append('g').attr('class', 'y-axis');
         for (let t = 0; t < timeSteps; t += timeInterval) {
             yAxis.append('text')
                 .attr('x', -5)
                 .attr('y', t * actualCellSize + actualCellSize / 2)
                 .attr('text-anchor', 'end')
                 .attr('dominant-baseline', 'middle')
-                .style('font-size', `${Math.min(10, actualCellSize / 2)}px`)
+                .style('font-size', '10px')
                 .style('fill', SECONDARY_COLORS.text.secondary)
                 .text(t);
         }
-        
-        // Add y-axis title
-        yAxis.append('text')
-            .attr('transform', 'rotate(-90)')
-            .attr('x', -height / 2)
-            .attr('y', -25)
-            .attr('text-anchor', 'middle')
-            .style('font-size', '11px')
-            .style('font-weight', '500')
-            .style('fill', SECONDARY_COLORS.text.secondary)
-            .text('Time');
     }
     
-    // Add legend
-    if (actualCellSize > 8) {
+    // Add simplified legend for larger cell sizes
+    if (actualCellSize > 12 && width > 200) {
         const legend = svg.append('g')
             .attr('class', 'legend')
-            .attr('transform', `translate(${width - 80}, 10)`);
+            .attr('transform', `translate(${width - 60}, 10)`);
         
         const legendItems = [
             { label: 'I', color: '#F7F7F7', pattern: true },
@@ -261,38 +185,21 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
         
         legendItems.forEach((item, i) => {
             const g = legend.append('g')
-                .attr('transform', `translate(0, ${i * 20})`);
+                .attr('transform', `translate(0, ${i * 15})`);
             
             g.append('rect')
-                .attr('width', 15)
-                .attr('height', 15)
-                .attr('rx', 2)
-                .attr('fill', item.pattern ? 'url(#identityPattern)' : item.color)
-                .attr('stroke', '#EEEEEE');
+                .attr('width', 12)
+                .attr('height', 12)
+                .attr('fill', item.pattern ? 'url(#identityPattern)' : item.color);
             
             g.append('text')
-                .attr('x', 20)
-                .attr('y', 12)
-                .style('font-size', '11px')
+                .attr('x', 16)
+                .attr('y', 9)
+                .style('font-size', '9px')
                 .style('fill', SECONDARY_COLORS.text.primary)
                 .text(item.label);
         });
     }
-    
-    // Add resize event listener to redraw when window is resized
-    const resizeHandler = () => {
-        renderSpacetimeDiagram(elementId, history);
-    };
-    
-    // Remove previous resize listener if exists
-    window.removeEventListener('resize', resizeHandler);
-    
-    // Add resize listener with debounce
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resizeHandler, 250);
-    });
 }
 
 /**
@@ -319,22 +226,11 @@ export function renderCurrentState(elementId, state, cellSize = null) {
     const containerWidth = container.node().getBoundingClientRect().width;
     
     // Calculate cell size dynamically if not provided
-    const actualCellSize = cellSize || Math.min(36, Math.floor(containerWidth / latticeSize));
+    const actualCellSize = cellSize || Math.min(30, Math.floor(containerWidth / latticeSize));
     
     // Set up the SVG dimensions
     const width = latticeSize * actualCellSize;
     const height = actualCellSize;
-    
-    // Create tooltip element if it doesn't exist
-    let tooltip = d3.select('body').select('.tooltip');
-    if (tooltip.empty()) {
-        tooltip = d3.select('body')
-            .append('div')
-            .attr('class', 'tooltip')
-            .style('opacity', 0)
-            .style('position', 'absolute')
-            .style('pointer-events', 'none');
-    }
     
     // Create SVG element with responsive attributes
     const svg = container
@@ -344,8 +240,7 @@ export function renderCurrentState(elementId, state, cellSize = null) {
         .attr('viewBox', `0 0 ${width} ${height + 10}`)
         .attr('preserveAspectRatio', 'xMidYMid meet')
         .style('background', SECONDARY_COLORS.background)
-        .style('border-radius', '4px')
-        .style('box-shadow', 'inset 0 0 10px rgba(0, 0, 0, 0.05)');
+        .style('border-radius', '4px');
     
     // Add a pattern for identity cells if it doesn't exist
     if (svg.select('defs').empty()) {
@@ -364,85 +259,39 @@ export function renderCurrentState(elementId, state, cellSize = null) {
     // Create cells group
     const cells = svg.append('g')
         .attr('class', 'cells')
-        .attr('transform', 'translate(0, 5)'); // Center vertically
+        .attr('transform', 'translate(0, 5)');
     
-    // Create cells for each position
+    // Create cells for each position - simplified, no interactivity
     for (let x = 0; x < latticeSize; x++) {
         const pauli = state[x];
         const pauliLabel = getPauliLabel(pauli);
         const color = getPauliColor(pauli);
         
-        // Create cell rectangle
-        const cell = cells.append('rect')
+        // Create simple cell rectangle
+        cells.append('rect')
             .attr('x', x * actualCellSize)
             .attr('y', 0)
             .attr('width', actualCellSize)
             .attr('height', actualCellSize)
             .attr('fill', pauliLabel === 'I' ? 'url(#identityPatternCurrent)' : color)
             .attr('stroke', '#DDDDDD')
-            .attr('stroke-width', 1)
-            .attr('rx', 4) // Rounded corners
-            .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
-            .style('cursor', 'pointer')
-            .style('transition', 'opacity 0.2s, transform 0.2s');
+            .attr('stroke-width', 0.5);
         
-        // Add hover effects
-        cell.on('mouseover', function(event) {
-            d3.select(this)
-                .attr('opacity', 1)
-                .attr('stroke', SECONDARY_COLORS.highlight)
-                .attr('stroke-width', 2);
-            
-            tooltip.transition()
-                .duration(200)
-                .style('opacity', 0.9);
-            
-            tooltip.html(`
-                <div style="font-weight: bold; margin-bottom: 5px;">
-                    Position: ${x}
-                </div>
-                <div style="display: flex; align-items: center;">
-                    <div style="
-                        width: 12px; 
-                        height: 12px; 
-                        background-color: ${color}; 
-                        margin-right: 5px;
-                        border-radius: 2px;
-                    "></div>
-                    <span>State: ${pauliLabel}</span>
-                </div>
-            `)
-                .style('left', (event.pageX + 10) + 'px')
-                .style('top', (event.pageY - 28) + 'px');
-        })
-        .on('mouseout', function() {
-            d3.select(this)
-                .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
-                .attr('stroke', '#DDDDDD')
-                .attr('stroke-width', 1);
-            
-            tooltip.transition()
-                .duration(500)
-                .style('opacity', 0);
-        });
-        
-        // Add Pauli label if not identity and if cell is big enough
-        if (pauliLabel !== 'I' && actualCellSize > 14) {
+        // Add Pauli label only for larger cells and non-identity operators
+        if (pauliLabel !== 'I' && actualCellSize > 16) {
             cells.append('text')
                 .attr('x', x * actualCellSize + actualCellSize / 2)
                 .attr('y', actualCellSize / 2)
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'middle')
-                .style('font-size', `${Math.min(14, actualCellSize / 2)}px`)
-                .style('font-weight', 'bold')
-                .style('user-select', 'none')
-                .style('pointer-events', 'none')
+                .style('font-size', `${Math.min(12, actualCellSize / 2.5)}px`)
+                .style('font-weight', '500')
                 .style('fill', pauliLabel === 'Y' ? '#333' : '#FFF')
                 .text(pauliLabel);
         }
         
-        // Add position labels below cells
-        if (x % 5 === 0 && actualCellSize > 12) {
+        // Add minimal position labels below cells, only for every 10th position
+        if (x % 10 === 0 && actualCellSize > 14) {
             cells.append('text')
                 .attr('x', x * actualCellSize + actualCellSize / 2)
                 .attr('y', actualCellSize + 4)
@@ -452,19 +301,4 @@ export function renderCurrentState(elementId, state, cellSize = null) {
                 .text(x);
         }
     }
-    
-    // Add resize event listener to redraw when window is resized
-    const resizeHandler = () => {
-        renderCurrentState(elementId, state);
-    };
-    
-    // Remove previous resize listener if exists
-    window.removeEventListener('resize', resizeHandler);
-    
-    // Add resize listener with debounce
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resizeHandler, 250);
-    });
 } 

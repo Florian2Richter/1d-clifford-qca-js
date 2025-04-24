@@ -17,167 +17,173 @@ export const DEFAULT_RULE_MATRIX = [
 ];
 
 /**
- * CliffordQCA class for simulating 1D Clifford Quantum Cellular Automata
+ * Clifford Quantum Cellular Automaton with configurable update rules
  */
 export class CliffordQCA {
     /**
-     * Create a new CliffordQCA instance
+     * Create a new Clifford QCA
      * 
-     * @param {number} size - Number of cells in the lattice
-     * @param {Array} ruleMatrix - 2x6 rule matrix over F2
+     * @param {number} [size=20] - Size of the 1D lattice
+     * @param {Array} [ruleMatrix=null] - Optional custom rule matrices
      */
-    constructor(size = 20, ruleMatrix = DEFAULT_RULE_MATRIX) {
-        this.size = size;
-        this.ruleMatrix = ruleMatrix;
-        this.state = Array(size).fill(PAULI.I); // Initialize with identity
-        this.history = []; // Store the evolution history
-    }
-
-    /**
-     * Set the rule matrix for the automaton
-     * 
-     * @param {Array} matrix - 2x6 matrix over F2
-     */
-    setRuleMatrix(matrix) {
-        // Validate matrix dimensions
-        if (matrix.length !== 2 || matrix[0].length !== 6 || matrix[1].length !== 6) {
-            throw new Error("Rule matrix must be 2x6");
+    constructor(size = 20, ruleMatrix = null) {
+        this.latticeSize = size;
+        
+        // Initialize state to all identity operators
+        this.reset();
+        
+        // Default rule matrices (identity rule)
+        if (ruleMatrix) {
+            this.ruleMatrix = ruleMatrix;
+        } else {
+            // Default rule: Identity rule (center = identity, neighbors = 0)
+            const leftMatrix = Array(2).fill().map(() => Array(2).fill(0));
+            const centerMatrix = [[1, 0], [0, 1]]; // Identity matrix
+            const rightMatrix = Array(2).fill().map(() => Array(2).fill(0));
+            
+            this.ruleMatrix = [leftMatrix, centerMatrix, rightMatrix];
         }
-        this.ruleMatrix = matrix;
+        
+        // Initialize history with current state
+        this.history = [this.state.slice()];
     }
-
+    
     /**
-     * Set the initial state of the automaton
+     * Reset the QCA to all identity operators
+     */
+    reset() {
+        this.state = Array(this.latticeSize).fill().map(() => PAULI.I.slice());
+        this.history = [this.state.slice()];
+    }
+    
+    /**
+     * Set the state of the QCA
      * 
-     * @param {Array} state - Array of Pauli operators in F2 representation
+     * @param {Array} state - Array of Pauli operators
      */
     setState(state) {
-        if (state.length !== this.size) {
-            throw new Error(`State must have ${this.size} elements`);
+        if (state.length === this.latticeSize) {
+            this.state = state.map(pauli => pauli.slice());
+            this.history = [this.state.slice()];
+        } else {
+            throw new Error(`State length (${state.length}) does not match lattice size (${this.latticeSize})`);
         }
-        this.state = [...state];
-        this.history = [this.state]; // Reset history with new initial state
     }
-
+    
     /**
-     * Set a single X at the specified position, identity elsewhere
+     * Get the current state of the QCA
      * 
-     * @param {number} position - Position to place the X operator
-     */
-    setSingleX(position) {
-        if (position < 0 || position >= this.size) {
-            throw new Error(`Position must be between 0 and ${this.size - 1}`);
-        }
-        
-        const newState = Array(this.size).fill(PAULI.I);
-        newState[position] = PAULI.X;
-        this.setState(newState);
-    }
-
-    /**
-     * Set a random initial state
-     */
-    setRandomState() {
-        const pauliValues = [PAULI.I, PAULI.X, PAULI.Z, PAULI.Y];
-        const newState = Array(this.size).fill().map(() => {
-            return pauliValues[Math.floor(Math.random() * 4)];
-        });
-        this.setState(newState);
-    }
-
-    /**
-     * Apply the rule to calculate the next state for a cell
-     * 
-     * @param {number} index - Cell index to update
-     * @param {Array} currentState - Current state of the automaton
-     * @returns {Array} - New Pauli operator for the cell
-     */
-    applyRule(index, currentState) {
-        // Get left, center, and right cells (with periodic boundary conditions)
-        const left = currentState[(index - 1 + this.size) % this.size];
-        const center = currentState[index];
-        const right = currentState[(index + 1) % this.size];
-        
-        // Extract the A_left, A_center, and A_right matrices (each is 2x2)
-        const A_left = [
-            [this.ruleMatrix[0][0], this.ruleMatrix[0][1]],
-            [this.ruleMatrix[1][0], this.ruleMatrix[1][1]]
-        ];
-        
-        const A_center = [
-            [this.ruleMatrix[0][2], this.ruleMatrix[0][3]],
-            [this.ruleMatrix[1][2], this.ruleMatrix[1][3]]
-        ];
-        
-        const A_right = [
-            [this.ruleMatrix[0][4], this.ruleMatrix[0][5]],
-            [this.ruleMatrix[1][4], this.ruleMatrix[1][5]]
-        ];
-        
-        // Matrix-vector multiplication over F2
-        // Multiply each 2x2 matrix with the corresponding Pauli operator
-        const leftContribution = math.mod(math.multiply(A_left, left), 2);
-        const centerContribution = math.mod(math.multiply(A_center, center), 2);
-        const rightContribution = math.mod(math.multiply(A_right, right), 2);
-        
-        // Sum the contributions (XOR in F2)
-        const result = [
-            (leftContribution[0] + centerContribution[0] + rightContribution[0]) % 2,
-            (leftContribution[1] + centerContribution[1] + rightContribution[1]) % 2
-        ];
-        
-        return result;
-    }
-
-    /**
-     * Evolve the automaton for one time step
-     */
-    step() {
-        const newState = Array(this.size).fill().map((_, index) => {
-            return this.applyRule(index, this.state);
-        });
-        
-        this.state = newState;
-        this.history.push([...this.state]);
-        
-        return this.state;
-    }
-
-    /**
-     * Run the automaton for multiple time steps
-     * 
-     * @param {number} steps - Number of time steps to evolve
-     */
-    run(steps) {
-        for (let i = 0; i < steps; i++) {
-            this.step();
-        }
-        return this.history;
-    }
-
-    /**
-     * Get the current state of the automaton
-     * 
-     * @returns {Array} - Current state
+     * @returns {Array} - Current state as array of Pauli operators
      */
     getState() {
-        return [...this.state];
+        return this.state.slice();
     }
-
+    
     /**
-     * Get the evolution history of the automaton
+     * Get the history of states
      * 
      * @returns {Array} - History of states
      */
     getHistory() {
-        return [...this.history];
+        return this.history.slice();
     }
-
+    
     /**
-     * Reset the automaton to all identity operators
+     * Initialize with a single X operator at the specified position
+     * 
+     * @param {number} position - Position for the X operator (0-indexed)
      */
-    reset() {
-        this.state = Array(this.size).fill(PAULI.I);
-        this.history = [this.state];
+    setSingleX(position) {
+        this.reset();
+        if (position >= 0 && position < this.latticeSize) {
+            this.state[position] = PAULI.X.slice();
+            this.history = [this.state.slice()];
+        }
+    }
+    
+    /**
+     * Initialize with a random state
+     */
+    setRandomState() {
+        this.reset();
+        const pauliOperators = [PAULI.I, PAULI.X, PAULI.Z, PAULI.Y];
+        
+        for (let i = 0; i < this.latticeSize; i++) {
+            const randomIndex = Math.floor(Math.random() * 4);
+            this.state[i] = pauliOperators[randomIndex].slice();
+        }
+        
+        this.history = [this.state.slice()];
+    }
+    
+    /**
+     * Perform a single update step based on the rule matrices
+     */
+    step() {
+        const newState = Array(this.latticeSize).fill().map(() => [0, 0]);
+        
+        for (let i = 0; i < this.latticeSize; i++) {
+            const left = this.state[(i - 1 + this.latticeSize) % this.latticeSize];
+            const center = this.state[i];
+            const right = this.state[(i + 1) % this.latticeSize];
+            
+            // Apply left matrix to left neighbor
+            const leftEffect = this.applyMatrix(this.ruleMatrix[0], left);
+            
+            // Apply center matrix to center cell
+            const centerEffect = this.applyMatrix(this.ruleMatrix[1], center);
+            
+            // Apply right matrix to right neighbor
+            const rightEffect = this.applyMatrix(this.ruleMatrix[2], right);
+            
+            // Combine effects by multiplying Pauli operators
+            let result = [0, 0];
+            result = multiplyPauli(result, leftEffect);
+            result = multiplyPauli(result, centerEffect);
+            result = multiplyPauli(result, rightEffect);
+            
+            newState[i] = result;
+        }
+        
+        // Update state and add to history
+        this.state = newState;
+        this.history.push(this.state.slice());
+        
+        return this.state;
+    }
+    
+    /**
+     * Run the QCA for a specified number of time steps
+     * 
+     * @param {number} steps - Number of time steps to run
+     */
+    run(steps) {
+        // Start fresh with current state
+        this.history = [this.state.slice()];
+        
+        // Run specified number of steps
+        for (let t = 0; t < steps; t++) {
+            this.step();
+        }
+        
+        return this.history;
+    }
+    
+    /**
+     * Apply a matrix to a Pauli operator
+     * 
+     * @param {Array} matrix - 2x2 matrix
+     * @param {Array} pauli - Pauli operator as [x,z]
+     * @returns {Array} - Resulting Pauli operator
+     */
+    applyMatrix(matrix, pauli) {
+        // Extract x and z bits from the input Pauli
+        const [x, z] = pauli;
+        
+        // Apply matrix transformation
+        const newX = (matrix[0][0] * x + matrix[0][1] * z) % 2;
+        const newZ = (matrix[1][0] * x + matrix[1][1] * z) % 2;
+        
+        return [newX, newZ];
     }
 } 

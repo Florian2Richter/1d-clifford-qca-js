@@ -13,52 +13,53 @@ import { DEFAULT_RULE_MATRIX } from '../simulation/automaton.js';
  * @param {Object} props - Component properties
  * @param {Function} props.onRunSimulation - Callback when simulation is run
  * @param {Function} props.onResetSimulation - Callback when simulation is reset
- * @param {number} props.defaultSize - Default lattice size
- * @param {number} props.defaultSteps - Default number of time steps
+ * @param {Function} props.onStepSimulation - Callback for stepping simulation by one step
+ * @param {Function} props.onToggleSimulation - Callback for toggling the animation
+ * @param {Function} props.onSpeedChange - Callback for changing animation speed
+ * @param {boolean} props.isRunning - Whether the simulation is currently running
+ * @param {number} props.currentStep - Current step number in the simulation
+ * @param {number} props.maxSteps - Maximum number of steps configured
+ * @param {number} props.animationSpeed - Current animation speed in ms
  */
 export function SimulationControls({ 
     onRunSimulation, 
     onResetSimulation, 
-    defaultSize = 20, 
-    defaultSteps = 20 
+    onStepSimulation, 
+    onToggleSimulation, 
+    onSpeedChange,
+    isRunning, 
+    currentStep, 
+    maxSteps, 
+    animationSpeed 
 }) {
-    const [latticeSize, setLatticeSize] = useState(defaultSize);
-    const [timeSteps, setTimeSteps] = useState(defaultSteps);
+    const [latticeSize, setLatticeSize] = useState(20);
+    const [timeSteps, setTimeSteps] = useState(50);
     const [initialStateType, setInitialStateType] = useState('single-x');
-    const [initialPosition, setInitialPosition] = useState(Math.floor(defaultSize / 2));
-    const [customPauliString, setCustomPauliString] = useState('');
+    const [initialPosition, setInitialPosition] = useState(9);
+    const [customPauliString, setCustomPauliString] = useState('X');
     
-    const handleRunSimulation = () => {
-        if (onRunSimulation) {
-            onRunSimulation({
-                latticeSize,
-                timeSteps,
-                initialStateType,
-                initialPosition,
-                customPauliString
-            });
-        }
-    };
-    
-    const handleResetSimulation = () => {
-        if (onResetSimulation) {
-            onResetSimulation();
-        }
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onRunSimulation({
+            latticeSize: parseInt(latticeSize),
+            timeSteps: parseInt(timeSteps),
+            initialStateType,
+            initialPosition: parseInt(initialPosition),
+            customPauliString
+        });
     };
     
     return (
-        <div className="simulation-controls">
-            <h3>Simulation Parameters</h3>
-            
+        <form className="simulation-controls" onSubmit={handleSubmit}>
             <div className="control-group">
                 <label htmlFor="lattice-size">Lattice Size:</label>
                 <input
                     id="lattice-size"
                     type="number"
-                    min="5"
+                    min="2"
                     max="100"
                     value={latticeSize}
-                    onChange={(e) => setLatticeSize(parseInt(e.target.value, 10))}
+                    onChange={(e) => setLatticeSize(e.target.value)}
                 />
             </div>
             
@@ -68,9 +69,9 @@ export function SimulationControls({
                     id="time-steps"
                     type="number"
                     min="1"
-                    max="100"
+                    max="1000"
                     value={timeSteps}
-                    onChange={(e) => setTimeSteps(parseInt(e.target.value, 10))}
+                    onChange={(e) => setTimeSteps(e.target.value)}
                 />
             </div>
             
@@ -85,8 +86,18 @@ export function SimulationControls({
                             checked={initialStateType === 'single-x'}
                             onChange={() => setInitialStateType('single-x')}
                         />
-                        Single X
+                        Single X at position
+                        <input
+                            type="number"
+                            min="0"
+                            max={latticeSize - 1}
+                            value={initialPosition}
+                            onChange={(e) => setInitialPosition(e.target.value)}
+                            disabled={initialStateType !== 'single-x'}
+                            style={{ width: '40px', marginLeft: '5px' }}
+                        />
                     </label>
+                    
                     <label>
                         <input
                             type="radio"
@@ -95,8 +106,9 @@ export function SimulationControls({
                             checked={initialStateType === 'random'}
                             onChange={() => setInitialStateType('random')}
                         />
-                        Random
+                        Random state
                     </label>
+                    
                     <label>
                         <input
                             type="radio"
@@ -105,54 +117,82 @@ export function SimulationControls({
                             checked={initialStateType === 'custom'}
                             onChange={() => setInitialStateType('custom')}
                         />
-                        Custom Pauli String
+                        Custom
                     </label>
                 </div>
             </div>
             
-            {initialStateType === 'single-x' && (
-                <div className="control-group">
-                    <label htmlFor="initial-position">X Position:</label>
-                    <input
-                        id="initial-position"
-                        type="number"
-                        min="0"
-                        max={latticeSize - 1}
-                        value={initialPosition}
-                        onChange={(e) => setInitialPosition(parseInt(e.target.value, 10))}
-                    />
-                </div>
-            )}
-            
             {initialStateType === 'custom' && (
                 <div className="control-group">
-                    <label htmlFor="custom-pauli">Pauli String (I, X, Z, Y):</label>
+                    <label htmlFor="custom-pauli-string">Custom Pauli String:</label>
                     <input
-                        id="custom-pauli"
+                        id="custom-pauli-string"
                         type="text"
-                        placeholder="e.g., IXZYI..."
+                        placeholder="e.g., XZYIXZ..."
                         value={customPauliString}
                         onChange={(e) => setCustomPauliString(e.target.value.toUpperCase())}
                     />
-                    <small>Enter a string of I, X, Z, Y with length {latticeSize}</small>
+                    <small style={{ marginTop: '5px', color: '#666' }}>
+                        Use I, X, Z, Y characters. Will be padded or truncated to match lattice size.
+                    </small>
                 </div>
             )}
             
-            <div className="button-group">
-                <button 
-                    className="run-button" 
-                    onClick={handleRunSimulation}
-                >
-                    Run Simulation
-                </button>
-                <button 
-                    className="reset-button" 
-                    onClick={handleResetSimulation}
-                >
-                    Reset
-                </button>
+            {/* Step counter display */}
+            <div className="control-group" style={{ textAlign: 'center' }}>
+                <div style={{ margin: '10px 0', fontWeight: 'bold' }}>
+                    Step: {currentStep} / {maxSteps}
+                </div>
+                
+                {/* Animation speed slider */}
+                <div style={{ margin: '10px 0' }}>
+                    <label htmlFor="speed-slider" style={{ display: 'block', marginBottom: '5px' }}>
+                        Animation Speed:
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ marginRight: '10px', fontSize: '0.9rem' }}>Slow</span>
+                        <input
+                            id="speed-slider"
+                            type="range"
+                            min="50"
+                            max="1000"
+                            step="50"
+                            value={animationSpeed}
+                            onChange={(e) => onSpeedChange(parseInt(e.target.value))}
+                            style={{ flex: 1 }}
+                            disabled={isRunning}
+                        />
+                        <span style={{ marginLeft: '10px', fontSize: '0.9rem' }}>Fast</span>
+                    </div>
+                </div>
             </div>
-        </div>
+            
+            <div className="button-group">
+                {/* Main action buttons */}
+                <button type="submit">Initialize</button>
+                <button type="button" onClick={onResetSimulation}>Reset</button>
+                
+                {/* Step and play/pause controls */}
+                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                    <button 
+                        type="button" 
+                        onClick={onStepSimulation}
+                        disabled={isRunning || currentStep >= maxSteps || maxSteps === 0}
+                        style={{ flex: 1, marginRight: '5px' }}
+                    >
+                        Step
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={onToggleSimulation}
+                        disabled={currentStep >= maxSteps || maxSteps === 0}
+                        style={{ flex: 1 }}
+                    >
+                        {isRunning ? 'Pause' : 'Play'}
+                    </button>
+                </div>
+            </div>
+        </form>
     );
 }
 
