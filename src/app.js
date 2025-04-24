@@ -21,6 +21,7 @@ export function App() {
     const currentStateRef = useRef(null);
     const spacetimeDiagramRef = useRef(null);
     const timeoutRef = useRef(null);
+    const renderTimeRef = useRef(0); // Store render time without triggering re-renders
     
     // Initialize QCA when rule matrix changes
     useEffect(() => {
@@ -90,9 +91,21 @@ export function App() {
         setCurrentStep(0);
         setStepTime(0);
         setRenderTime(0);
+        renderTimeRef.current = 0;
         setIsRunning(true); // Automatically start the incremental animation
         
     }, [simulationParams, ruleMatrix]);
+    
+    // Update the UI with performance metrics periodically without triggering re-renders
+    useEffect(() => {
+        if (!isRunning) return;
+        
+        const metricsInterval = setInterval(() => {
+            setRenderTime(renderTimeRef.current);
+        }, 500); // Update metrics every 500ms
+        
+        return () => clearInterval(metricsInterval);
+    }, [isRunning]);
     
     // Incremental animation effect
     useEffect(() => {
@@ -104,13 +117,13 @@ export function App() {
             return;
         }
         
-        // Schedule the next step (10ms delay between steps)
+        // Schedule the next step with increased delay (50ms instead of 10ms)
         timeoutRef.current = setTimeout(() => {
             // Measure time for the step
             const startTime = performance.now();
             
             // Take one step in the simulation
-            qca.step();
+            const newState = qca.step();
             
             // Calculate time taken
             const endTime = performance.now();
@@ -120,10 +133,10 @@ export function App() {
             setStepTime(timeTaken);
             
             // Update history with the new state (using functional update to avoid dependency)
-            setHistory(prevHistory => [...prevHistory, qca.getState()]);
+            setHistory(prevHistory => [...prevHistory, newState]);
             setCurrentStep(prevStep => prevStep + 1);
             
-        }, 10); // Animation speed reduced to 10ms
+        }, 50); // Increased animation speed to 50ms for stability
         
         // Cleanup on unmount or when running state changes
         return () => {
@@ -146,10 +159,9 @@ export function App() {
             // Render spacetime diagram with all accumulated history
             renderSpacetimeDiagram('spacetime-diagram', history);
             
-            // Calculate rendering time
+            // Calculate rendering time and store in ref (avoiding re-render)
             const renderEndTime = performance.now();
-            const renderTimeTaken = renderEndTime - renderStartTime;
-            setRenderTime(renderTimeTaken);
+            renderTimeRef.current = renderEndTime - renderStartTime;
         }
     }, [history]);
     
@@ -176,6 +188,7 @@ export function App() {
         setCurrentStep(0);
         setStepTime(0);
         setRenderTime(0);
+        renderTimeRef.current = 0;
     };
     
     const handleRuleMatrixChange = (newMatrix) => {
