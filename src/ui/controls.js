@@ -19,22 +19,22 @@ import { DEFAULT_RULE_MATRIX } from '../simulation/automaton.js';
 export function SimulationControls({ 
     onRunSimulation, 
     onResetSimulation, 
-    defaultSize = 100, 
-    defaultSteps = 50 
+    defaultSize = 500, 
+    defaultSteps = 250 
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
     const [initialStateType, setInitialStateType] = useState('single-x');
-    const [initialPosition, setInitialPosition] = useState(50);
+    const [initialPosition, setInitialPosition] = useState(250);
     const [customPauliString, setCustomPauliString] = useState('X');
     
     const handleRunSimulation = () => {
         if (onRunSimulation) {
             onRunSimulation({
-                latticeSize: parseInt(latticeSize) || 100,
-                timeSteps: parseInt(timeSteps) || 50,
+                latticeSize: parseInt(latticeSize) || 500,
+                timeSteps: parseInt(timeSteps) || 250,
                 initialStateType,
-                initialPosition: parseInt(initialPosition) || 50,
+                initialPosition: parseInt(initialPosition) || 250,
                 customPauliString
             });
         }
