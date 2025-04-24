@@ -153,20 +153,7 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
                 .attr('data-t', t)
                 .attr('data-x', x);
             
-            // Add Pauli label if not identity and if cell is big enough
-            if (pauliLabel !== 'I' && cellSize > 14) {
-                cellsGroup.append('text')
-                    .attr('x', x * cellSize + cellSize / 2)
-                    .attr('y', t * cellSize + cellSize / 2)
-                    .attr('text-anchor', 'middle')
-                    .attr('dominant-baseline', 'middle')
-                    .style('font-size', Math.min(12, cellSize / 2) + 'px')
-                    .style('font-weight', 'bold')
-                    .style('fill', pauliLabel === 'Y' ? '#333' : '#fff')
-                    .text(pauliLabel)
-                    .attr('data-t', t)
-                    .attr('data-x', x);
-            }
+            // No text labels for Pauli operators
         }
     }
     
@@ -239,18 +226,7 @@ export function renderCurrentState(elementId, state, cellSizeParam = null) {
             .attr('stroke', '#ddd')
             .attr('stroke-width', 0.5);
         
-        // Add Pauli label
-        if (pauliLabel !== 'I' && actualCellSize > 14) {
-            cells.append('text')
-                .attr('x', x * actualCellSize + actualCellSize / 2)
-                .attr('y', actualCellSize / 2)
-                .attr('text-anchor', 'middle')
-                .attr('dominant-baseline', 'middle')
-                .style('font-size', Math.min(14, actualCellSize / 2) + 'px')
-                .style('font-weight', 'bold')
-                .style('fill', pauliLabel === 'Y' ? '#333' : '#fff')
-                .text(pauliLabel);
-        }
+        // No text labels for Pauli operators
         
         // Add position label for every 5th position
         if (x % 5 === 0) {

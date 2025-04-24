@@ -6,7 +6,7 @@ import { CliffordQCA } from './simulation/automaton.js';
 import { pauliStringToF2 } from './simulation/clifford.js';
 import { SimulationControls, RuleMatrixEditor } from './ui/controls.js';
 import { MainLayout, Section, TwoColumnLayout } from './ui/layout.js';
-import { renderSpacetimeDiagram, renderCurrentState, resetSpacetimeDiagram } from './visualization/spacetime.js';
+import { renderSpacetimeDiagram, renderCurrentState } from './visualization/spacetime.js';
 
 export function App() {
     const [qca, setQca] = useState(new CliffordQCA());
@@ -39,8 +39,10 @@ export function App() {
             timeoutRef.current = null;
         }
         
-        // Reset visualization state
-        resetSpacetimeDiagram();
+        // Reset visualization by clearing the container
+        if (spacetimeDiagramRef.current) {
+            spacetimeDiagramRef.current.innerHTML = '';
+        }
         
         const { 
             latticeSize, 
@@ -142,8 +144,10 @@ export function App() {
             timeoutRef.current = null;
         }
         
-        // Reset visualization state
-        resetSpacetimeDiagram();
+        // Reset visualization by clearing the container
+        if (spacetimeDiagramRef.current) {
+            spacetimeDiagramRef.current.innerHTML = '';
+        }
         
         // Reset QCA to initial state
         qca.reset();
