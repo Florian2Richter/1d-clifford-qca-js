@@ -13,11 +13,15 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+          cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Clean install
         run: |
-          npm install 
-          npm install domutils css-select entities
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm install
+          npm install domutils@3.1.0 css-select@5.1.0 entities@4.5.0 --force
+          npm install htmlparser2@9.0.0 --force
           npm install buffer
 
       - name: Build
@@ -27,4 +31,5 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: dist 
+          folder: dist
+          token: ${{ secrets.GITHUB_TOKEN }} 
