@@ -5,7 +5,7 @@
  * with customizable rule matrices and initial states.
  */
 import { PAULI, multiplyPauli } from './clifford.js';
-import * as math from 'mathjs';
+import { mat2, vec2 } from 'gl-matrix';
 
 /**
  * Default rule matrix for the simulation (2x6 over F2)
@@ -31,6 +31,75 @@ export class CliffordQCA {
         this.ruleMatrix = ruleMatrix;
         this.state = Array(size).fill(PAULI.I); // Initialize with identity
         this.history = []; // Store the evolution history
+        
+        // Create optimized matrices for the rule
+        this.setupOptimizedMatrices();
+        
+        // Pre-allocate memory for computation
+        this.leftVec = vec2.create();
+        this.centerVec = vec2.create();
+        this.rightVec = vec2.create();
+        this.resultVec = vec2.create();
+        this.tmpVec = vec2.create();
+    }
+    
+    /**
+     * Setup optimized matrices using gl-matrix
+     */
+    setupOptimizedMatrices() {
+        // Extract the A_left, A_center, and A_right matrices (each is 2x2)
+        this.A_left = mat2.fromValues(
+            this.ruleMatrix[0][0], this.ruleMatrix[1][0],
+            this.ruleMatrix[0][1], this.ruleMatrix[1][1]
+        );
+        
+        this.A_center = mat2.fromValues(
+            this.ruleMatrix[0][2], this.ruleMatrix[1][2],
+            this.ruleMatrix[0][3], this.ruleMatrix[1][3]
+        );
+        
+        this.A_right = mat2.fromValues(
+            this.ruleMatrix[0][4], this.ruleMatrix[1][4],
+            this.ruleMatrix[0][5], this.ruleMatrix[1][5]
+        );
+        
+        // Pre-compute all possible transformation results for each operator
+        // This is a significant optimization since there are only 4 possible inputs
+        // for each of the 3 matrices (I, X, Z, Y)
+        this.transformCache = new Map();
+        
+        const pauliValues = [PAULI.I, PAULI.X, PAULI.Z, PAULI.Y];
+        
+        for (const p of pauliValues) {
+            // Compute and cache A_left * p
+            const leftKey = `left_${p[0]}_${p[1]}`;
+            this.transformCache.set(leftKey, this.transformSinglePauli(this.A_left, p));
+            
+            // Compute and cache A_center * p
+            const centerKey = `center_${p[0]}_${p[1]}`;
+            this.transformCache.set(centerKey, this.transformSinglePauli(this.A_center, p));
+            
+            // Compute and cache A_right * p
+            const rightKey = `right_${p[0]}_${p[1]}`;
+            this.transformCache.set(rightKey, this.transformSinglePauli(this.A_right, p));
+        }
+    }
+    
+    /**
+     * Helper function to transform a single Pauli operator using a matrix
+     * 
+     * @param {mat2} matrix - 2x2 matrix
+     * @param {Array} pauli - Pauli operator as [x,z]
+     * @returns {Array} - Transformed Pauli operator
+     */
+    transformSinglePauli(matrix, pauli) {
+        const v = vec2.fromValues(pauli[0], pauli[1]);
+        const result = vec2.create();
+        
+        vec2.transformMat2(result, v, matrix);
+        
+        // Apply modulo 2 to result
+        return [result[0] % 2, result[1] % 2];
     }
 
     /**
@@ -44,6 +113,9 @@ export class CliffordQCA {
             throw new Error("Rule matrix must be 2x6");
         }
         this.ruleMatrix = matrix;
+        
+        // Update optimized matrices
+        this.setupOptimizedMatrices();
     }
 
     /**
@@ -87,6 +159,7 @@ export class CliffordQCA {
 
     /**
      * Apply the rule to calculate the next state for a cell
+     * Uses pre-computed transformation cache for speed
      * 
      * @param {number} index - Cell index to update
      * @param {Array} currentState - Current state of the automaton
@@ -98,44 +171,34 @@ export class CliffordQCA {
         const center = currentState[index];
         const right = currentState[(index + 1) % this.size];
         
-        // Extract the A_left, A_center, and A_right matrices (each is 2x2)
-        const A_left = [
-            [this.ruleMatrix[0][0], this.ruleMatrix[0][1]],
-            [this.ruleMatrix[1][0], this.ruleMatrix[1][1]]
-        ];
+        // Use cached transformations for faster computation
+        const leftKey = `left_${left[0]}_${left[1]}`;
+        const centerKey = `center_${center[0]}_${center[1]}`;
+        const rightKey = `right_${right[0]}_${right[1]}`;
         
-        const A_center = [
-            [this.ruleMatrix[0][2], this.ruleMatrix[0][3]],
-            [this.ruleMatrix[1][2], this.ruleMatrix[1][3]]
-        ];
-        
-        const A_right = [
-            [this.ruleMatrix[0][4], this.ruleMatrix[0][5]],
-            [this.ruleMatrix[1][4], this.ruleMatrix[1][5]]
-        ];
-        
-        // Matrix-vector multiplication over F2
-        // Multiply each 2x2 matrix with the corresponding Pauli operator
-        const leftContribution = math.mod(math.multiply(A_left, left), 2);
-        const centerContribution = math.mod(math.multiply(A_center, center), 2);
-        const rightContribution = math.mod(math.multiply(A_right, right), 2);
+        const leftContrib = this.transformCache.get(leftKey);
+        const centerContrib = this.transformCache.get(centerKey);
+        const rightContrib = this.transformCache.get(rightKey);
         
         // Sum the contributions (XOR in F2)
-        const result = [
-            (leftContribution[0] + centerContribution[0] + rightContribution[0]) % 2,
-            (leftContribution[1] + centerContribution[1] + rightContribution[1]) % 2
+        return [
+            (leftContrib[0] + centerContrib[0] + rightContrib[0]) % 2,
+            (leftContrib[1] + centerContrib[1] + rightContrib[1]) % 2
         ];
-        
-        return result;
     }
 
     /**
      * Evolve the automaton for one time step
+     * Optimized implementation using typed arrays
      */
     step() {
-        const newState = Array(this.size).fill().map((_, index) => {
-            return this.applyRule(index, this.state);
-        });
+        // Create a buffer for the new state
+        const newState = Array(this.size);
+        
+        // Use preallocated typed arrays for better performance
+        for (let i = 0; i < this.size; i++) {
+            newState[i] = this.applyRule(i, this.state);
+        }
         
         this.state = newState;
         this.history.push(newState.map(pauli => [...pauli])); // Deep copy to history
