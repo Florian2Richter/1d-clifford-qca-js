@@ -119,10 +119,9 @@ export function App() {
             // Store the raw millisecond value without formatting
             setStepTime(timeTaken);
             
-            // Update history with the new state
-            const newHistory = [...history, qca.getState()];
-            setHistory(newHistory);
-            setCurrentStep(currentStep + 1);
+            // Update history with the new state (using functional update to avoid dependency)
+            setHistory(prevHistory => [...prevHistory, qca.getState()]);
+            setCurrentStep(prevStep => prevStep + 1);
             
         }, 10); // Animation speed reduced to 10ms
         
@@ -133,7 +132,7 @@ export function App() {
                 timeoutRef.current = null;
             }
         };
-    }, [isRunning, currentStep, qca, history, simulationParams]);
+    }, [isRunning, currentStep, qca, simulationParams]);
     
     // Render visualization when history changes
     useEffect(() => {
