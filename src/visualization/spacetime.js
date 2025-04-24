@@ -79,58 +79,6 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
         
         canvasContext = canvasElement.getContext('2d');
         
-        // Create and position axis labels div
-        const labelsOverlay = container.append('div')
-            .style('position', 'absolute')
-            .style('top', '0')
-            .style('left', '0')
-            .style('width', '100%')
-            .style('height', '100%')
-            .style('pointer-events', 'none')
-            .style('z-index', '10');
-        
-        // X-axis labels
-        const xLabels = labelsOverlay.append('div')
-            .style('position', 'absolute')
-            .style('top', '0')
-            .style('left', '0')
-            .style('width', '100%')
-            .style('height', '15px');
-        
-        for (let x = 0; x < latticeSize; x += 5) {
-            const labelPos = (x * cellSize + cellSize / 2) / width * 100;
-            xLabels.append('div')
-                .style('position', 'absolute')
-                .style('left', `${labelPos}%`)
-                .style('transform', 'translateX(-50%)')
-                .style('font-size', '10px')
-                .style('color', '#666')
-                .text(x);
-        }
-        
-        // Y-axis labels container
-        const yLabels = labelsOverlay.append('div')
-            .style('position', 'absolute')
-            .style('top', '0')
-            .style('left', '0')
-            .style('width', '20px')
-            .style('height', '100%');
-            
-        // Pre-create y-labels for first 50 steps
-        for (let t = 0; t < 50; t += 5) {
-            const labelPos = (t * cellSize + cellSize / 2) / containerHeight * 100;
-            yLabels.append('div')
-                .attr('class', 'y-label')
-                .style('position', 'absolute')
-                .style('top', `${labelPos}%`)
-                .style('left', '5px')
-                .style('transform', 'translateY(-50%)')
-                .style('font-size', '10px')
-                .style('color', '#666')
-                .style('text-align', 'right')
-                .text(t);
-        }
-        
         // Draw grid 
         canvasContext.strokeStyle = '#eee';
         canvasContext.lineWidth = 0.5;
@@ -304,27 +252,5 @@ export function renderCurrentState(elementId, state, cellSizeParam = null) {
         ctx.lineWidth = 0.5;
         ctx.globalAlpha = 1.0;
         ctx.strokeRect(x * actualCellSize, 0, actualCellSize, actualCellSize);
-    }
-    
-    // Create overlay for position labels (Canvas doesn't handle text as well as DOM)
-    const labelsOverlay = container.append('div')
-        .style('position', 'absolute')
-        .style('top', '0')
-        .style('left', '0')
-        .style('width', '100%')
-        .style('height', '100%')
-        .style('pointer-events', 'none');
-    
-    // Add position labels for every 5th position
-    for (let x = 0; x < latticeSize; x += 5) {
-        const labelPos = (x * actualCellSize + actualCellSize / 2) / width * 100;
-        labelsOverlay.append('div')
-            .style('position', 'absolute')
-            .style('left', `${labelPos}%`)
-            .style('top', `${actualCellSize + 5}px`)
-            .style('transform', 'translateX(-50%)')
-            .style('font-size', '10px')
-            .style('color', '#666')
-            .text(x);
     }
 } 
