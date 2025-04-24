@@ -22,12 +22,25 @@ export const PAULI_LABELS = {
     '1,1': 'Y'
 };
 
-// Map Pauli label to color
+// Map Pauli label to color - updated with more sophisticated palette
 export const PAULI_COLORS = {
-    'I': '#FFFFFF', // White
-    'X': '#FF6B6B', // Red
-    'Z': '#4ECDC4', // Blue-green
-    'Y': '#FFD166'  // Yellow
+    'I': '#F7F7F7', // Light grey
+    'X': '#FF9488', // Coral red
+    'Z': '#4285F4', // Google blue
+    'Y': '#F4B400'  // Google yellow
+};
+
+// Secondary color palette for highlights and effects
+export const SECONDARY_COLORS = {
+    background: '#FAFAFA',
+    highlight: '#4285F4',
+    accent: '#0F9D58',
+    text: {
+        primary: '#212121',
+        secondary: '#757575',
+        disabled: '#BDBDBD'
+    },
+    divider: '#EEEEEE'
 };
 
 /**

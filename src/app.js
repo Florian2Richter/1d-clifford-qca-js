@@ -104,20 +104,27 @@ export function App() {
             <TwoColumnLayout
                 leftColumn={
                     <>
-                        <Section title="About">
+                        <Section title="About" collapsible={true} defaultExpanded={false}>
                             <p>
                                 This simulator demonstrates a 1D Clifford Quantum Cellular Automaton,
                                 where each cell is represented by a Pauli operator (I, X, Z, Y)
                                 and evolves according to a local update rule.
                             </p>
+                            <p>
+                                Clifford QCAs are important models for studying quantum information
+                                propagation and have applications in quantum error correction and 
+                                quantum simulation.
+                            </p>
                         </Section>
                         
-                        <Section title="Controls">
+                        <Section title="Simulation Parameters" collapsible={true}>
                             <SimulationControls
                                 onRunSimulation={handleRunSimulation}
                                 onResetSimulation={handleResetSimulation}
                             />
-                            
+                        </Section>
+                        
+                        <Section title="Rule Matrix" collapsible={true}>
                             <RuleMatrixEditor
                                 ruleMatrix={ruleMatrix}
                                 onRuleMatrixChange={handleRuleMatrixChange}
@@ -135,11 +142,18 @@ export function App() {
                             ></div>
                         </Section>
                         
-                        <Section title="Spacetime Diagram">
+                        <Section title="Spacetime Diagram" 
+                            style={{ 
+                                flex: 1,
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}
+                        >
                             <div 
                                 id="spacetime-diagram" 
                                 ref={spacetimeDiagramRef}
                                 className="visualization-container"
+                                style={{ flex: 1 }}
                             ></div>
                         </Section>
                     </>

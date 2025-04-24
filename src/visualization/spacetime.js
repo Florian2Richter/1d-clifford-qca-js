@@ -5,7 +5,7 @@
  * showing the evolution of the automaton over time.
  */
 import * as d3 from 'd3';
-import { getPauliLabel, getPauliColor } from '../simulation/clifford.js';
+import { getPauliLabel, getPauliColor, SECONDARY_COLORS } from '../simulation/clifford.js';
 
 /**
  * Render a spacetime diagram showing the evolution of a 1D QCA
@@ -48,6 +48,14 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
     const width = latticeSize * actualCellSize;
     const height = timeSteps * actualCellSize;
     
+    // Create tooltip element
+    const tooltip = d3.select('body')
+        .append('div')
+        .attr('class', 'tooltip')
+        .style('opacity', 0)
+        .style('position', 'absolute')
+        .style('pointer-events', 'none');
+    
     // Create SVG element with responsive attributes
     const svg = container
         .append('svg')
@@ -55,8 +63,52 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
         .attr('height', '100%')
         .attr('viewBox', `0 0 ${width} ${height}`)
         .attr('preserveAspectRatio', 'xMidYMid meet')
-        .style('background', '#f9f9f9')
-        .style('border', '1px solid #ccc');
+        .style('background', SECONDARY_COLORS.background)
+        .style('border-radius', '4px')
+        .style('box-shadow', 'inset 0 0 10px rgba(0, 0, 0, 0.05)');
+    
+    // Add a pattern for identity cells
+    svg.append('defs')
+        .append('pattern')
+        .attr('id', 'identityPattern')
+        .attr('patternUnits', 'userSpaceOnUse')
+        .attr('width', 4)
+        .attr('height', 4)
+        .append('path')
+        .attr('d', 'M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2')
+        .attr('stroke', '#EEEEEE')
+        .attr('stroke-width', 1);
+    
+    // Create grid background
+    const grid = svg.append('g')
+        .attr('class', 'grid');
+    
+    // Create cells for each time step and position
+    const cells = svg.append('g')
+        .attr('class', 'cells');
+    
+    // Draw grid lines
+    if (actualCellSize > 3) {
+        for (let t = 0; t <= timeSteps; t++) {
+            grid.append('line')
+                .attr('x1', 0)
+                .attr('y1', t * actualCellSize)
+                .attr('x2', width)
+                .attr('y2', t * actualCellSize)
+                .attr('stroke', '#EEEEEE')
+                .attr('stroke-width', 0.5);
+        }
+        
+        for (let x = 0; x <= latticeSize; x++) {
+            grid.append('line')
+                .attr('x1', x * actualCellSize)
+                .attr('y1', 0)
+                .attr('x2', x * actualCellSize)
+                .attr('y2', height)
+                .attr('stroke', '#EEEEEE')
+                .attr('stroke-width', 0.5);
+        }
+    }
     
     // Create cells for each time step and position
     for (let t = 0; t < timeSteps; t++) {
@@ -65,30 +117,73 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
             const pauliLabel = getPauliLabel(pauli);
             const color = getPauliColor(pauli);
             
-            // Only draw non-identity cells
-            if (pauliLabel !== 'I') {
-                svg.append('rect')
-                    .attr('x', x * actualCellSize)
-                    .attr('y', t * actualCellSize)
-                    .attr('width', actualCellSize)
-                    .attr('height', actualCellSize)
-                    .attr('fill', color)
-                    .attr('stroke', '#555')
-                    .attr('stroke-width', 0.5)
-                    .append('title')
-                    .text(`Position: ${x}, Time: ${t}, State: ${pauliLabel}`);
-            }
+            // Cell rectangle
+            const cell = cells.append('rect')
+                .attr('x', x * actualCellSize)
+                .attr('y', t * actualCellSize)
+                .attr('width', actualCellSize)
+                .attr('height', actualCellSize)
+                .attr('fill', pauliLabel === 'I' ? 'url(#identityPattern)' : color)
+                .attr('stroke', '#EEEEEE')
+                .attr('stroke-width', 0.5)
+                .attr('rx', pauliLabel !== 'I' ? 2 : 0)
+                .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
+                .style('cursor', 'pointer')
+                .style('transition', 'opacity 0.2s, transform 0.2s');
             
-            // Add grid lines (only if cells are big enough)
-            if (actualCellSize > 3) {
-                svg.append('rect')
-                    .attr('x', x * actualCellSize)
-                    .attr('y', t * actualCellSize)
-                    .attr('width', actualCellSize)
-                    .attr('height', actualCellSize)
-                    .attr('fill', 'none')
-                    .attr('stroke', '#ddd')
+            // Add hover effects
+            cell.on('mouseover', function(event) {
+                d3.select(this)
+                    .attr('opacity', 1)
+                    .attr('stroke', SECONDARY_COLORS.highlight)
+                    .attr('stroke-width', 1.5);
+                
+                tooltip.transition()
+                    .duration(200)
+                    .style('opacity', 0.9);
+                
+                tooltip.html(`
+                    <div style="font-weight: bold; margin-bottom: 5px;">
+                        Position: ${x}, Time: ${t}
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div style="
+                            width: 12px; 
+                            height: 12px; 
+                            background-color: ${color}; 
+                            margin-right: 5px;
+                            border-radius: 2px;
+                        "></div>
+                        <span>State: ${pauliLabel}</span>
+                    </div>
+                `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+            })
+            .on('mouseout', function() {
+                d3.select(this)
+                    .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
+                    .attr('stroke', '#EEEEEE')
                     .attr('stroke-width', 0.5);
+                
+                tooltip.transition()
+                    .duration(500)
+                    .style('opacity', 0);
+            });
+            
+            // Add Pauli label if cell is big enough
+            if (pauliLabel !== 'I' && actualCellSize > 14) {
+                cells.append('text')
+                    .attr('x', x * actualCellSize + actualCellSize / 2)
+                    .attr('y', t * actualCellSize + actualCellSize / 2)
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'middle')
+                    .style('font-size', `${Math.min(12, actualCellSize / 2.5)}px`)
+                    .style('font-weight', '500')
+                    .style('user-select', 'none')
+                    .style('pointer-events', 'none')
+                    .style('fill', pauliLabel === 'Y' ? '#333' : '#FFF')
+                    .text(pauliLabel);
             }
         }
     }
@@ -96,28 +191,92 @@ export function renderSpacetimeDiagram(elementId, history, cellSize = null) {
     // Add x-axis labels (only if enough space, and every N positions)
     const labelInterval = Math.max(5, Math.ceil(latticeSize / 20));
     if (actualCellSize > 10) {
+        const xAxis = svg.append('g')
+            .attr('class', 'x-axis')
+            .attr('transform', `translate(0, ${height + 5})`);
+        
         for (let x = 0; x < latticeSize; x += labelInterval) {
-            svg.append('text')
+            xAxis.append('text')
                 .attr('x', x * actualCellSize + actualCellSize / 2)
-                .attr('y', height + 15)
+                .attr('y', 10)
                 .attr('text-anchor', 'middle')
                 .style('font-size', `${Math.min(10, actualCellSize / 2)}px`)
+                .style('fill', SECONDARY_COLORS.text.secondary)
                 .text(x);
         }
+        
+        // Add x-axis title
+        xAxis.append('text')
+            .attr('x', width / 2)
+            .attr('y', 25)
+            .attr('text-anchor', 'middle')
+            .style('font-size', '11px')
+            .style('font-weight', '500')
+            .style('fill', SECONDARY_COLORS.text.secondary)
+            .text('Position');
     }
     
     // Add time axis labels (only if enough space, and every N time steps)
     const timeInterval = Math.max(5, Math.ceil(timeSteps / 20));
     if (actualCellSize > 10) {
+        const yAxis = svg.append('g')
+            .attr('class', 'y-axis')
+            .attr('transform', 'translate(-5, 0)');
+        
         for (let t = 0; t < timeSteps; t += timeInterval) {
-            svg.append('text')
+            yAxis.append('text')
                 .attr('x', -5)
                 .attr('y', t * actualCellSize + actualCellSize / 2)
                 .attr('text-anchor', 'end')
                 .attr('dominant-baseline', 'middle')
                 .style('font-size', `${Math.min(10, actualCellSize / 2)}px`)
+                .style('fill', SECONDARY_COLORS.text.secondary)
                 .text(t);
         }
+        
+        // Add y-axis title
+        yAxis.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -height / 2)
+            .attr('y', -25)
+            .attr('text-anchor', 'middle')
+            .style('font-size', '11px')
+            .style('font-weight', '500')
+            .style('fill', SECONDARY_COLORS.text.secondary)
+            .text('Time');
+    }
+    
+    // Add legend
+    if (actualCellSize > 8) {
+        const legend = svg.append('g')
+            .attr('class', 'legend')
+            .attr('transform', `translate(${width - 80}, 10)`);
+        
+        const legendItems = [
+            { label: 'I', color: '#F7F7F7', pattern: true },
+            { label: 'X', color: getPauliColor([1, 0]) },
+            { label: 'Z', color: getPauliColor([0, 1]) },
+            { label: 'Y', color: getPauliColor([1, 1]) }
+        ];
+        
+        legendItems.forEach((item, i) => {
+            const g = legend.append('g')
+                .attr('transform', `translate(0, ${i * 20})`);
+            
+            g.append('rect')
+                .attr('width', 15)
+                .attr('height', 15)
+                .attr('rx', 2)
+                .attr('fill', item.pattern ? 'url(#identityPattern)' : item.color)
+                .attr('stroke', '#EEEEEE');
+            
+            g.append('text')
+                .attr('x', 20)
+                .attr('y', 12)
+                .style('font-size', '11px')
+                .style('fill', SECONDARY_COLORS.text.primary)
+                .text(item.label);
+        });
     }
     
     // Add resize event listener to redraw when window is resized
@@ -160,21 +319,52 @@ export function renderCurrentState(elementId, state, cellSize = null) {
     const containerWidth = container.node().getBoundingClientRect().width;
     
     // Calculate cell size dynamically if not provided
-    const actualCellSize = cellSize || Math.min(30, Math.floor(containerWidth / latticeSize));
+    const actualCellSize = cellSize || Math.min(36, Math.floor(containerWidth / latticeSize));
     
     // Set up the SVG dimensions
     const width = latticeSize * actualCellSize;
     const height = actualCellSize;
     
+    // Create tooltip element if it doesn't exist
+    let tooltip = d3.select('body').select('.tooltip');
+    if (tooltip.empty()) {
+        tooltip = d3.select('body')
+            .append('div')
+            .attr('class', 'tooltip')
+            .style('opacity', 0)
+            .style('position', 'absolute')
+            .style('pointer-events', 'none');
+    }
+    
     // Create SVG element with responsive attributes
     const svg = container
         .append('svg')
         .attr('width', '100%')
-        .attr('height', actualCellSize)
-        .attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('height', actualCellSize + 10) // Add padding
+        .attr('viewBox', `0 0 ${width} ${height + 10}`)
         .attr('preserveAspectRatio', 'xMidYMid meet')
-        .style('background', '#f9f9f9')
-        .style('border', '1px solid #ccc');
+        .style('background', SECONDARY_COLORS.background)
+        .style('border-radius', '4px')
+        .style('box-shadow', 'inset 0 0 10px rgba(0, 0, 0, 0.05)');
+    
+    // Add a pattern for identity cells if it doesn't exist
+    if (svg.select('defs').empty()) {
+        svg.append('defs')
+            .append('pattern')
+            .attr('id', 'identityPatternCurrent')
+            .attr('patternUnits', 'userSpaceOnUse')
+            .attr('width', 4)
+            .attr('height', 4)
+            .append('path')
+            .attr('d', 'M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2')
+            .attr('stroke', '#EEEEEE')
+            .attr('stroke-width', 1);
+    }
+    
+    // Create cells group
+    const cells = svg.append('g')
+        .attr('class', 'cells')
+        .attr('transform', 'translate(0, 5)'); // Center vertically
     
     // Create cells for each position
     for (let x = 0; x < latticeSize; x++) {
@@ -183,25 +373,83 @@ export function renderCurrentState(elementId, state, cellSize = null) {
         const color = getPauliColor(pauli);
         
         // Create cell rectangle
-        svg.append('rect')
+        const cell = cells.append('rect')
             .attr('x', x * actualCellSize)
             .attr('y', 0)
             .attr('width', actualCellSize)
             .attr('height', actualCellSize)
-            .attr('fill', color)
-            .attr('stroke', '#555')
-            .attr('stroke-width', 1);
+            .attr('fill', pauliLabel === 'I' ? 'url(#identityPatternCurrent)' : color)
+            .attr('stroke', '#DDDDDD')
+            .attr('stroke-width', 1)
+            .attr('rx', 4) // Rounded corners
+            .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
+            .style('cursor', 'pointer')
+            .style('transition', 'opacity 0.2s, transform 0.2s');
+        
+        // Add hover effects
+        cell.on('mouseover', function(event) {
+            d3.select(this)
+                .attr('opacity', 1)
+                .attr('stroke', SECONDARY_COLORS.highlight)
+                .attr('stroke-width', 2);
+            
+            tooltip.transition()
+                .duration(200)
+                .style('opacity', 0.9);
+            
+            tooltip.html(`
+                <div style="font-weight: bold; margin-bottom: 5px;">
+                    Position: ${x}
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <div style="
+                        width: 12px; 
+                        height: 12px; 
+                        background-color: ${color}; 
+                        margin-right: 5px;
+                        border-radius: 2px;
+                    "></div>
+                    <span>State: ${pauliLabel}</span>
+                </div>
+            `)
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 28) + 'px');
+        })
+        .on('mouseout', function() {
+            d3.select(this)
+                .attr('opacity', pauliLabel === 'I' ? 0.6 : 0.9)
+                .attr('stroke', '#DDDDDD')
+                .attr('stroke-width', 1);
+            
+            tooltip.transition()
+                .duration(500)
+                .style('opacity', 0);
+        });
         
         // Add Pauli label if not identity and if cell is big enough
-        if (pauliLabel !== 'I' && actualCellSize > 12) {
-            svg.append('text')
+        if (pauliLabel !== 'I' && actualCellSize > 14) {
+            cells.append('text')
                 .attr('x', x * actualCellSize + actualCellSize / 2)
                 .attr('y', actualCellSize / 2)
                 .attr('text-anchor', 'middle')
                 .attr('dominant-baseline', 'middle')
                 .style('font-size', `${Math.min(14, actualCellSize / 2)}px`)
                 .style('font-weight', 'bold')
+                .style('user-select', 'none')
+                .style('pointer-events', 'none')
+                .style('fill', pauliLabel === 'Y' ? '#333' : '#FFF')
                 .text(pauliLabel);
+        }
+        
+        // Add position labels below cells
+        if (x % 5 === 0 && actualCellSize > 12) {
+            cells.append('text')
+                .attr('x', x * actualCellSize + actualCellSize / 2)
+                .attr('y', actualCellSize + 4)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '9px')
+                .style('fill', SECONDARY_COLORS.text.secondary)
+                .text(x);
         }
     }
     
