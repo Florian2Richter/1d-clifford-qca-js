@@ -16,6 +16,7 @@ export function App() {
     const [currentStep, setCurrentStep] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
     const [stepTime, setStepTime] = useState(0);
+    const [renderTime, setRenderTime] = useState(0);
     
     const currentStateRef = useRef(null);
     const spacetimeDiagramRef = useRef(null);
@@ -88,6 +89,7 @@ export function App() {
         setHistory([newQca.getState()]);
         setCurrentStep(0);
         setStepTime(0);
+        setRenderTime(0);
         setIsRunning(true); // Automatically start the incremental animation
         
     }, [simulationParams, ruleMatrix]);
@@ -102,7 +104,7 @@ export function App() {
             return;
         }
         
-        // Schedule the next step (200ms delay between steps)
+        // Schedule the next step (10ms delay between steps)
         timeoutRef.current = setTimeout(() => {
             // Measure time for the step
             const startTime = performance.now();
@@ -122,7 +124,7 @@ export function App() {
             setHistory(newHistory);
             setCurrentStep(currentStep + 1);
             
-        }, 200); // Animation speed (in milliseconds)
+        }, 10); // Animation speed reduced to 10ms
         
         // Cleanup on unmount or when running state changes
         return () => {
@@ -136,11 +138,19 @@ export function App() {
     // Render visualization when history changes
     useEffect(() => {
         if (history.length > 0 && currentStateRef.current && spacetimeDiagramRef.current) {
+            // Measure rendering time
+            const renderStartTime = performance.now();
+            
             // Render current state (always the last item in history)
             renderCurrentState('current-state', history[history.length - 1]);
             
             // Render spacetime diagram with all accumulated history
             renderSpacetimeDiagram('spacetime-diagram', history);
+            
+            // Calculate rendering time
+            const renderEndTime = performance.now();
+            const renderTimeTaken = renderEndTime - renderStartTime;
+            setRenderTime(renderTimeTaken);
         }
     }, [history]);
     
@@ -166,6 +176,7 @@ export function App() {
         setHistory([qca.getState()]);
         setCurrentStep(0);
         setStepTime(0);
+        setRenderTime(0);
     };
     
     const handleRuleMatrixChange = (newMatrix) => {
@@ -206,7 +217,8 @@ export function App() {
                         
                         <Section title="Performance" collapsible={true}>
                             <div className="info-panel">
-                                <p><strong>Last Step Time:</strong> {stepTime > 0 ? `${stepTime} ms` : '< 0.001 ms'}</p>
+                                <p><strong>Computation Time:</strong> {stepTime > 0 ? `${stepTime.toFixed(3)} ms` : '< 0.001 ms'}</p>
+                                <p><strong>Rendering Time:</strong> {renderTime > 0 ? `${renderTime.toFixed(3)} ms` : '< 0.001 ms'}</p>
                                 <p><strong>Current Step:</strong> {currentStep}</p>
                             </div>
                         </Section>
