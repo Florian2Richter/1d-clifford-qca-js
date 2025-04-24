@@ -1,0 +1,31 @@
+{
+  "name": "1d-clifford-qca-js",
+  "version": "0.1.0",
+  "description": "1D Clifford Quantum Cellular Automata Simulator in JavaScript",
+  "scripts": {
+    "start": "parcel src/index.html",
+    "build": "parcel build src/index.html",
+    "test": "jest"
+  },
+  "keywords": [
+    "quantum",
+    "cellular automata",
+    "clifford",
+    "simulation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "d3": "^7.8.5",
+    "mathjs": "^12.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.3",
+    "@babel/preset-env": "^7.23.3",
+    "@babel/preset-react": "^7.23.3",
+    "parcel": "^2.10.3",
+    "process": "^0.11.10"
+  }
+} 
