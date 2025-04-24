@@ -43,7 +43,8 @@ export function Section({
     title, 
     children, 
     collapsible = false, 
-    defaultExpanded = true 
+    defaultExpanded = true,
+    style = {}
 }) {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     
@@ -54,7 +55,7 @@ export function Section({
     };
     
     return (
-        <section className="app-section">
+        <section className="app-section" style={style}>
             <h2 
                 className="section-title" 
                 onClick={toggleExpanded}
@@ -171,4 +172,28 @@ export function TwoColumnLayout({ leftColumn, rightColumn }) {
             </div>
         </div>
     );
-} 
+}
+
+/* Add a style tag for additional CSS classes */
+const styles = document.createElement('style');
+styles.innerHTML = `
+    .info-panel {
+        background: #f5f5f5;
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-top: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .info-panel p {
+        margin: 8px 0;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .info-panel strong {
+        font-weight: 600;
+        color: #333;
+    }
+`;
+document.head.appendChild(styles); 

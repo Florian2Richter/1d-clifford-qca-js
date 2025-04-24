@@ -15,6 +15,7 @@ export function App() {
     const [simulationParams, setSimulationParams] = useState(null);
     const [currentStep, setCurrentStep] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
+    const [stepTime, setStepTime] = useState(0);
     
     const currentStateRef = useRef(null);
     const spacetimeDiagramRef = useRef(null);
@@ -86,6 +87,7 @@ export function App() {
         setQca(newQca);
         setHistory([newQca.getState()]);
         setCurrentStep(0);
+        setStepTime(0);
         setIsRunning(true); // Automatically start the incremental animation
         
     }, [simulationParams, ruleMatrix]);
@@ -102,8 +104,16 @@ export function App() {
         
         // Schedule the next step (200ms delay between steps)
         timeoutRef.current = setTimeout(() => {
+            // Measure time for the step
+            const startTime = performance.now();
+            
             // Take one step in the simulation
             qca.step();
+            
+            // Calculate time taken
+            const endTime = performance.now();
+            const timeTaken = endTime - startTime;
+            setStepTime(timeTaken.toFixed(2));
             
             // Update history with the new state
             const newHistory = [...history, qca.getState()];
@@ -153,6 +163,7 @@ export function App() {
         qca.reset();
         setHistory([qca.getState()]);
         setCurrentStep(0);
+        setStepTime(0);
     };
     
     const handleRuleMatrixChange = (newMatrix) => {
@@ -189,6 +200,13 @@ export function App() {
                                 ruleMatrix={ruleMatrix}
                                 onRuleMatrixChange={handleRuleMatrixChange}
                             />
+                        </Section>
+                        
+                        <Section title="Performance" collapsible={true}>
+                            <div className="info-panel">
+                                <p><strong>Last Step Time:</strong> {stepTime} ms</p>
+                                <p><strong>Current Step:</strong> {currentStep}</p>
+                            </div>
                         </Section>
                     </>
                 }
