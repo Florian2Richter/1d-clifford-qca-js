@@ -52,36 +52,42 @@ export function App() {
             timeSteps, 
             initialStateType, 
             initialPosition, 
-            customPauliString 
+            customPauliString,
+            selectedPreset 
         } = simulationParams;
         
         // Create new QCA with updated size
         const newQca = new CliffordQCA(latticeSize, ruleMatrix);
         
-        // Set initial state based on type
-        if (initialStateType === 'single-x') {
-            newQca.setSingleX(initialPosition);
-        } else if (initialStateType === 'random') {
-            newQca.setRandomState();
-        } else if (initialStateType === 'custom') {
-            try {
-                // Validate and pad/truncate custom string as needed
-                let pauliArray;
-                if (customPauliString.length === latticeSize) {
-                    pauliArray = pauliStringToF2(customPauliString);
-                } else if (customPauliString.length < latticeSize) {
-                    // Pad with 'I' if too short
-                    const paddedString = customPauliString.padEnd(latticeSize, 'I');
-                    pauliArray = pauliStringToF2(paddedString);
-                } else {
-                    // Truncate if too long
-                    const truncatedString = customPauliString.substring(0, latticeSize);
-                    pauliArray = pauliStringToF2(truncatedString);
+        // If a preset is selected, apply it
+        if (selectedPreset && selectedPreset !== 'Custom') {
+            newQca.setPreset(selectedPreset, latticeSize);
+        } else {
+            // Set initial state based on type
+            if (initialStateType === 'single-x') {
+                newQca.setSingleX(initialPosition);
+            } else if (initialStateType === 'random') {
+                newQca.setRandomState();
+            } else if (initialStateType === 'custom') {
+                try {
+                    // Validate and pad/truncate custom string as needed
+                    let pauliArray;
+                    if (customPauliString.length === latticeSize) {
+                        pauliArray = pauliStringToF2(customPauliString);
+                    } else if (customPauliString.length < latticeSize) {
+                        // Pad with 'I' if too short
+                        const paddedString = customPauliString.padEnd(latticeSize, 'I');
+                        pauliArray = pauliStringToF2(paddedString);
+                    } else {
+                        // Truncate if too long
+                        const truncatedString = customPauliString.substring(0, latticeSize);
+                        pauliArray = pauliStringToF2(truncatedString);
+                    }
+                    newQca.setState(pauliArray);
+                } catch (error) {
+                    console.error('Invalid Pauli string:', error);
+                    newQca.reset(); // Reset to all identity if invalid
                 }
-                newQca.setState(pauliArray);
-            } catch (error) {
-                console.error('Invalid Pauli string:', error);
-                newQca.reset(); // Reset to all identity if invalid
             }
         }
         

@@ -8,13 +8,53 @@ import { PAULI, multiplyPauli } from './clifford.js';
 import { mat2, vec2 } from 'gl-matrix';
 
 /**
+ * Preset configurations for the simulation
+ */
+export const PRESETS = {
+    "Custom": {
+        description: "Custom configuration (current settings)",
+        ruleMatrix: [
+            [1, 0, 1, 1, 0, 1], // [Left 1,0,0,1 | Center 1,1,0,1 | Right 0,1,1,0]
+            [0, 1, 0, 1, 1, 0]
+        ],
+        initialState: {
+            operators: [
+                { type: 'X', position: 250 }
+            ]
+        }
+    },
+    "Glider": {
+        description: "A 'glider' pattern that propagates through the lattice",
+        ruleMatrix: [
+            [0, 0, 0, 1, 0, 0], // [Left 0,0,0,1 | Center 0,1,1,0 | Right 0,0,0,1]
+            [0, 1, 1, 0, 0, 1]
+        ],
+        initialState: {
+            operators: [
+                { type: 'X', position: 250 },
+                { type: 'Z', position: 251 }
+            ]
+        }
+    },
+    "Fractal": {
+        description: "A pattern that creates self-similar fractal structures",
+        ruleMatrix: [
+            [1, 0, 1, 1, 1, 0], // [Left 1,0,0,0 | Center 1,1,1,0 | Right 1,0,0,0]
+            [0, 0, 1, 0, 0, 0]
+        ],
+        initialState: {
+            operators: [
+                { type: 'X', position: 250 }
+            ]
+        }
+    }
+};
+
+/**
  * Default rule matrix for the simulation (2x6 over F2)
  * Format: [A_left | A_center | A_right]
  */
-export const DEFAULT_RULE_MATRIX = [
-    [1, 0, 1, 1, 0, 1], // First row
-    [0, 1, 0, 1, 1, 0]  // Second row
-];
+export const DEFAULT_RULE_MATRIX = PRESETS.Custom.ruleMatrix;
 
 /**
  * CliffordQCA class for simulating 1D Clifford Quantum Cellular Automata
@@ -26,7 +66,7 @@ export class CliffordQCA {
      * @param {number} size - Number of cells in the lattice
      * @param {Array} ruleMatrix - 2x6 rule matrix over F2
      */
-    constructor(size = 20, ruleMatrix = DEFAULT_RULE_MATRIX) {
+    constructor(size = 500, ruleMatrix = DEFAULT_RULE_MATRIX) {
         this.size = size;
         this.ruleMatrix = ruleMatrix;
         this.state = Array(size).fill(PAULI.I); // Initialize with identity
@@ -117,6 +157,49 @@ export class CliffordQCA {
         // Update optimized matrices
         this.setupOptimizedMatrices();
     }
+    
+    /**
+     * Set a preset configuration (rule matrix and initial state)
+     * 
+     * @param {string} presetName - Name of the preset configuration
+     * @param {number} latticeSize - Size of the lattice (for initial state scaling)
+     */
+    setPreset(presetName, latticeSize = this.size) {
+        if (!PRESETS[presetName]) {
+            throw new Error(`Preset '${presetName}' not found`);
+        }
+        
+        // Set the rule matrix
+        this.setRuleMatrix(PRESETS[presetName].ruleMatrix);
+        
+        // Create the initial state based on the preset configuration
+        const preset = PRESETS[presetName];
+        const centerOffset = Math.floor(latticeSize / 2) - 250; // Center the pattern regardless of lattice size
+        
+        // Initialize with identity operators
+        const newState = Array(latticeSize).fill().map(() => [...PAULI.I]);
+        
+        // Place the operators according to the preset
+        preset.initialState.operators.forEach(op => {
+            // Adjust position to center the pattern in the current lattice
+            const adjustedPosition = op.position + centerOffset;
+            
+            // Ensure position is within bounds with wraparound
+            const position = (adjustedPosition + latticeSize) % latticeSize;
+            
+            // Set the operator
+            if (op.type === 'X') {
+                newState[position] = [...PAULI.X];
+            } else if (op.type === 'Y') {
+                newState[position] = [...PAULI.Y];
+            } else if (op.type === 'Z') {
+                newState[position] = [...PAULI.Z];
+            }
+        });
+        
+        // Set the state
+        this.setState(newState);
+    }
 
     /**
      * Set the initial state of the automaton
@@ -145,7 +228,30 @@ export class CliffordQCA {
         newState[position] = [...PAULI.X];
         this.setState(newState);
     }
-
+    
+    /**
+     * Set multiple operators at specific positions
+     * 
+     * @param {Array} operators - Array of {type, position} objects
+     */
+    setMultipleOperators(operators) {
+        const newState = Array(this.size).fill().map(() => [...PAULI.I]);
+        
+        operators.forEach(op => {
+            if (op.position >= 0 && op.position < this.size) {
+                if (op.type === 'X') {
+                    newState[op.position] = [...PAULI.X];
+                } else if (op.type === 'Y') {
+                    newState[op.position] = [...PAULI.Y];
+                } else if (op.type === 'Z') {
+                    newState[op.position] = [...PAULI.Z];
+                }
+            }
+        });
+        
+        this.setState(newState);
+    }
+    
     /**
      * Set a random initial state
      */

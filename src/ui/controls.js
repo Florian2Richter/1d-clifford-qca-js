@@ -5,7 +5,7 @@
  * parameters and running the automaton.
  */
 import React, { useState, useEffect } from 'react';
-import { DEFAULT_RULE_MATRIX } from '../simulation/automaton.js';
+import { DEFAULT_RULE_MATRIX, PRESETS } from '../simulation/automaton.js';
 
 /**
  * Simulation controls component
@@ -25,6 +25,7 @@ export function SimulationControls({
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
     const [initialStateType, setInitialStateType] = useState('custom-ops');
+    const [selectedPreset, setSelectedPreset] = useState('Custom');
     
     // For multiple operators
     const [operators, setOperators] = useState([
@@ -32,6 +33,19 @@ export function SimulationControls({
     ]);
     
     const [customPauliString, setCustomPauliString] = useState('X');
+    
+    // Update operators when preset changes
+    useEffect(() => {
+        if (selectedPreset && PRESETS[selectedPreset]) {
+            const preset = PRESETS[selectedPreset];
+            
+            // Update operators based on preset
+            if (initialStateType === 'custom-ops') {
+                const newOperators = [...preset.initialState.operators];
+                setOperators(newOperators);
+            }
+        }
+    }, [selectedPreset, initialStateType]);
     
     // Find next available position
     const findNextPosition = () => {
@@ -91,6 +105,10 @@ export function SimulationControls({
         setOperators(newOperators);
     };
     
+    const handlePresetChange = (preset) => {
+        setSelectedPreset(preset);
+    };
+    
     const handleRunSimulation = () => {
         if (onRunSimulation) {
             // Convert operators to a custom Pauli string for existing simulation logic
@@ -112,14 +130,16 @@ export function SimulationControls({
                     latticeSize: parseInt(latticeSize) || 500,
                     timeSteps: parseInt(timeSteps) || 250,
                     initialStateType: 'custom',
-                    customPauliString: customString
+                    customPauliString: customString,
+                    selectedPreset: selectedPreset
                 });
             } else {
                 onRunSimulation({
                     latticeSize: parseInt(latticeSize) || 500,
                     timeSteps: parseInt(timeSteps) || 250,
                     initialStateType,
-                    customPauliString
+                    customPauliString,
+                    selectedPreset: selectedPreset
                 });
             }
         }
@@ -164,6 +184,22 @@ export function SimulationControls({
     return (
         <div className="simulation-controls">
             <h3>Simulation Parameters</h3>
+            
+            <div className="control-group">
+                <label htmlFor="preset-select">Preset Configuration:</label>
+                <select 
+                    id="preset-select"
+                    value={selectedPreset}
+                    onChange={(e) => handlePresetChange(e.target.value)}
+                    style={{ width: '100%', marginBottom: '10px' }}
+                >
+                    {Object.keys(PRESETS).map(preset => (
+                        <option key={preset} value={preset}>
+                            {preset} - {PRESETS[preset].description}
+                        </option>
+                    ))}
+                </select>
+            </div>
             
             <div className="control-group">
                 <label htmlFor="lattice-size">Lattice Size:</label>
