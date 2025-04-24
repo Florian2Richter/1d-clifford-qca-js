@@ -136,7 +136,7 @@ export function App() {
             setHistory(prevHistory => [...prevHistory, newState]);
             setCurrentStep(prevStep => prevStep + 1);
             
-        }, 50); // Increased animation speed to 50ms for stability
+        }, 10); // Changed back to 10ms since rendering is now around 5ms
         
         // Cleanup on unmount or when running state changes
         return () => {
