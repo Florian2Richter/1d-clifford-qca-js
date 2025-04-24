@@ -4,7 +4,7 @@
  * This module provides React components for controlling the simulation
  * parameters and running the automaton.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DEFAULT_RULE_MATRIX } from '../simulation/automaton.js';
 
 /**
@@ -24,19 +24,104 @@ export function SimulationControls({
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
-    const [initialStateType, setInitialStateType] = useState('single-x');
-    const [initialPosition, setInitialPosition] = useState(250);
+    const [initialStateType, setInitialStateType] = useState('custom-ops');
+    
+    // For multiple operators
+    const [operators, setOperators] = useState([
+        { type: 'X', position: 250 }
+    ]);
+    
     const [customPauliString, setCustomPauliString] = useState('X');
+    
+    // Find next available position
+    const findNextPosition = () => {
+        if (operators.length === 0) return Math.floor(latticeSize / 2);
+        
+        // Sort current positions to find gaps
+        const positions = operators.map(op => op.position).sort((a, b) => a - b);
+        
+        // If we have room after the last position
+        if (positions[positions.length - 1] < latticeSize - 1) {
+            return positions[positions.length - 1] + 1;
+        }
+        
+        // Try to find a gap between positions
+        for (let i = 0; i < positions.length - 1; i++) {
+            if (positions[i + 1] - positions[i] > 1) {
+                return positions[i] + 1;
+            }
+        }
+        
+        // If no gaps and the smallest position is > 0, use 0
+        if (positions[0] > 0) return 0;
+        
+        // Last resort: return middle position and user will need to change it
+        return Math.floor(latticeSize / 2);
+    };
+    
+    const addOperator = () => {
+        if (operators.length >= latticeSize) return; // Can't add more operators than lattice size
+        
+        const nextPosition = findNextPosition();
+        setOperators([...operators, { type: 'X', position: nextPosition }]);
+    };
+    
+    const removeOperator = (index) => {
+        const newOperators = [...operators];
+        newOperators.splice(index, 1);
+        setOperators(newOperators);
+    };
+    
+    const updateOperator = (index, field, value) => {
+        const newOperators = [...operators];
+        
+        if (field === 'position') {
+            // Validate position within lattice bounds
+            const position = parseInt(value);
+            if (isNaN(position) || position < 0 || position >= latticeSize) return;
+            
+            // Check for duplicates
+            if (newOperators.some((op, i) => i !== index && op.position === position)) return;
+            
+            newOperators[index].position = position;
+        } else if (field === 'type') {
+            newOperators[index].type = value;
+        }
+        
+        setOperators(newOperators);
+    };
     
     const handleRunSimulation = () => {
         if (onRunSimulation) {
-            onRunSimulation({
-                latticeSize: parseInt(latticeSize) || 500,
-                timeSteps: parseInt(timeSteps) || 250,
-                initialStateType,
-                initialPosition: parseInt(initialPosition) || 250,
-                customPauliString
-            });
+            // Convert operators to a custom Pauli string for existing simulation logic
+            if (initialStateType === 'custom-ops') {
+                // Create an array of I's with length latticeSize
+                const stateArray = Array(parseInt(latticeSize) || 500).fill('I');
+                
+                // Replace I's with other operators at specified positions
+                operators.forEach(op => {
+                    if (op.position >= 0 && op.position < stateArray.length) {
+                        stateArray[op.position] = op.type;
+                    }
+                });
+                
+                // Join into a string
+                const customString = stateArray.join('');
+                
+                onRunSimulation({
+                    latticeSize: parseInt(latticeSize) || 500,
+                    timeSteps: parseInt(timeSteps) || 250,
+                    initialStateType: 'custom',
+                    customPauliString: customString
+                });
+            } else {
+                onRunSimulation({
+                    latticeSize: parseInt(latticeSize) || 500,
+                    timeSteps: parseInt(timeSteps) || 250,
+                    initialStateType,
+                    customPauliString
+                });
+            }
         }
     };
     
@@ -51,10 +136,16 @@ export function SimulationControls({
         const parsedValue = parseInt(value);
         if (!isNaN(parsedValue) && parsedValue > 0) {
             setLatticeSize(parsedValue);
-            // Update initial position if needed
-            if (initialStateType === 'single-x' && initialPosition >= parsedValue) {
-                setInitialPosition(parsedValue - 1);
-            }
+            
+            // Update operators if their positions are now out of bounds
+            const newOperators = operators.map(op => {
+                if (op.position >= parsedValue) {
+                    return { ...op, position: parsedValue - 1 };
+                }
+                return op;
+            });
+            
+            setOperators(newOperators);
         } else {
             setLatticeSize('');
         }
@@ -70,17 +161,6 @@ export function SimulationControls({
         }
     };
     
-    // Handler to safely update initial position
-    const handleInitialPosition = (value) => {
-        const parsedValue = parseInt(value);
-        const maxPos = parseInt(latticeSize) - 1 || 19;
-        if (!isNaN(parsedValue) && parsedValue >= 0 && parsedValue <= maxPos) {
-            setInitialPosition(parsedValue);
-        } else {
-            setInitialPosition('');
-        }
-    };
-    
     return (
         <div className="simulation-controls">
             <h3>Simulation Parameters</h3>
@@ -91,7 +171,7 @@ export function SimulationControls({
                     id="lattice-size"
                     type="number"
                     min="2"
-                    max="100"
+                    max="1000"
                     value={latticeSize}
                     onChange={(e) => handleLatticeSize(e.target.value)}
                 />
@@ -103,7 +183,7 @@ export function SimulationControls({
                     id="time-steps"
                     type="number"
                     min="1"
-                    max="100"
+                    max="1000"
                     value={timeSteps}
                     onChange={(e) => handleTimeSteps(e.target.value)}
                 />
@@ -116,11 +196,11 @@ export function SimulationControls({
                         <input
                             type="radio"
                             name="initial-state"
-                            value="single-x"
-                            checked={initialStateType === 'single-x'}
-                            onChange={() => setInitialStateType('single-x')}
+                            value="custom-ops"
+                            checked={initialStateType === 'custom-ops'}
+                            onChange={() => setInitialStateType('custom-ops')}
                         />
-                        Single X
+                        Non-identity Operators
                     </label>
                     <label>
                         <input
@@ -145,17 +225,76 @@ export function SimulationControls({
                 </div>
             </div>
             
-            {initialStateType === 'single-x' && (
-                <div className="control-group">
-                    <label htmlFor="initial-position">X Position:</label>
-                    <input
-                        id="initial-position"
-                        type="number"
-                        min="0"
-                        max={parseInt(latticeSize) - 1 || 19}
-                        value={initialPosition}
-                        onChange={(e) => handleInitialPosition(e.target.value)}
-                    />
+            {initialStateType === 'custom-ops' && (
+                <div className="non-identity-operators">
+                    <div className="control-group">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label>Non-identity Operators: {operators.length}</label>
+                            <div>
+                                <button 
+                                    type="button" 
+                                    onClick={addOperator}
+                                    disabled={operators.length >= latticeSize}
+                                    style={{ marginRight: '5px' }}
+                                >
+                                    +
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
+                                    disabled={operators.length <= 1}
+                                >
+                                    -
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="operators-list" style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto' }}>
+                        {operators.map((op, index) => (
+                            <div key={index} style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                marginBottom: '5px',
+                                padding: '5px',
+                                backgroundColor: '#f5f5f5',
+                                borderRadius: '4px'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <label style={{ marginRight: '10px' }}>Type:</label>
+                                    <select 
+                                        value={op.type} 
+                                        onChange={(e) => updateOperator(index, 'type', e.target.value)}
+                                        style={{ marginRight: '15px' }}
+                                    >
+                                        <option value="X">X</option>
+                                        <option value="Y">Y</option>
+                                        <option value="Z">Z</option>
+                                    </select>
+                                    
+                                    <label style={{ marginRight: '10px' }}>Position:</label>
+                                    <input 
+                                        type="number" 
+                                        min="0" 
+                                        max={latticeSize - 1}
+                                        value={op.position}
+                                        onChange={(e) => updateOperator(index, 'position', e.target.value)}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                                
+                                <button 
+                                    type="button" 
+                                    onClick={() => removeOperator(index)}
+                                    disabled={operators.length <= 1}
+                                    style={{ marginLeft: '10px' }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
             
