@@ -113,7 +113,9 @@ export function App() {
             // Calculate time taken
             const endTime = performance.now();
             const timeTaken = endTime - startTime;
-            setStepTime(timeTaken.toFixed(4));
+            
+            // Store the raw millisecond value without formatting
+            setStepTime(timeTaken);
             
             // Update history with the new state
             const newHistory = [...history, qca.getState()];
@@ -204,7 +206,7 @@ export function App() {
                         
                         <Section title="Performance" collapsible={true}>
                             <div className="info-panel">
-                                <p><strong>Last Step Time:</strong> {stepTime} ms</p>
+                                <p><strong>Last Step Time:</strong> {stepTime > 0 ? `${stepTime} ms` : '< 0.001 ms'}</p>
                                 <p><strong>Current Step:</strong> {currentStep}</p>
                             </div>
                         </Section>
