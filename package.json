@@ -4,7 +4,7 @@
   "description": "1D Clifford Quantum Cellular Automata Simulator in JavaScript",
   "scripts": {
     "start": "parcel src/index.html",
-    "build": "parcel build src/index.html",
+    "build": "parcel build src/index.html --public-url ./",
     "test": "jest"
   },
   "keywords": [
@@ -17,6 +17,7 @@
   "license": "MIT",
   "dependencies": {
     "d3": "^7.8.5",
+    "domutils": "^3.2.2",
     "gl-matrix": "^3.4.3",
     "mathjs": "^12.3.0",
     "react": "^18.2.0",
