@@ -1,21 +1,17 @@
-# 1D Clifford Quantum Cellular Automata Simulator
+# 1D Clifford Quantum Cellular Automaton Simulator
 
-An interactive JavaScript application for simulating and visualizing 1-Dimensional Clifford Quantum Cellular Automata (QCA). This simulator demonstrates the evolution of Pauli operators through a 1D lattice over time, providing insights into quantum information propagation.
+A JavaScript simulator for 1D Clifford Quantum Cellular Automata.
 
 ## Features
 
-* Interactive simulation of 1D Clifford QCA
-* Real-time visualization of quantum state evolution
-* Customizable simulation parameters:
-  * Number of cells (lattice size)
-  * Number of time steps
-  * Local update rules (2×6 matrix over F₂)
-* Multiple initial state options:
-  * Single active cell (X operator)
-  * Random configuration
-  * Custom Pauli string input
-* Spacetime diagram visualization
-* Intuitive web interface built with React
+- Interactive visualization of quantum cellular automata evolution
+- Customizable rule matrices
+- Support for various initial states
+- Real-time simulation
+
+## Live Demo
+
+Check out the live demo at: https://florian2richter.github.io/1d-clifford-qca-js/
 
 ## Mathematical Background
 
