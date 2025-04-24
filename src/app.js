@@ -113,7 +113,7 @@ export function App() {
             // Calculate time taken
             const endTime = performance.now();
             const timeTaken = endTime - startTime;
-            setStepTime(timeTaken.toFixed(2));
+            setStepTime(timeTaken.toFixed(4));
             
             // Update history with the new state
             const newHistory = [...history, qca.getState()];
