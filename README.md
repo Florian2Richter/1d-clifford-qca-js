@@ -7,7 +7,7 @@ A JavaScript simulator for 1D Clifford Quantum Cellular Automata.
 - Interactive visualization of quantum cellular automata evolution
 - Customizable rule matrices
 - Support for various initial states
-- Real-time simulation
+- Real-time simulation and analysis
 
 ## Live Demo
 
