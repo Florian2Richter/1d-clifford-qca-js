@@ -24,7 +24,6 @@ export function SimulationControls({
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
-    const [initialStateType, setInitialStateType] = useState('custom-ops');
     const [selectedPreset, setSelectedPreset] = useState('Custom');
     
     // For multiple operators
@@ -32,20 +31,16 @@ export function SimulationControls({
         { type: 'X', position: 250 }
     ]);
     
-    const [customPauliString, setCustomPauliString] = useState('X');
-    
     // Update operators when preset changes
     useEffect(() => {
         if (selectedPreset && PRESETS[selectedPreset]) {
             const preset = PRESETS[selectedPreset];
             
             // Update operators based on preset
-            if (initialStateType === 'custom-ops') {
-                const newOperators = [...preset.initialState.operators];
-                setOperators(newOperators);
-            }
+            const newOperators = [...preset.initialState.operators];
+            setOperators(newOperators);
         }
-    }, [selectedPreset, initialStateType]);
+    }, [selectedPreset]);
     
     // Find next available position
     const findNextPosition = () => {
@@ -111,37 +106,26 @@ export function SimulationControls({
     
     const handleRunSimulation = () => {
         if (onRunSimulation) {
-            // Convert operators to a custom Pauli string for existing simulation logic
-            if (initialStateType === 'custom-ops') {
-                // Create an array of I's with length latticeSize
-                const stateArray = Array(parseInt(latticeSize) || 500).fill('I');
-                
-                // Replace I's with other operators at specified positions
-                operators.forEach(op => {
-                    if (op.position >= 0 && op.position < stateArray.length) {
-                        stateArray[op.position] = op.type;
-                    }
-                });
-                
-                // Join into a string
-                const customString = stateArray.join('');
-                
-                onRunSimulation({
-                    latticeSize: parseInt(latticeSize) || 500,
-                    timeSteps: parseInt(timeSteps) || 250,
-                    initialStateType: 'custom',
-                    customPauliString: customString,
-                    selectedPreset: selectedPreset
-                });
-            } else {
-                onRunSimulation({
-                    latticeSize: parseInt(latticeSize) || 500,
-                    timeSteps: parseInt(timeSteps) || 250,
-                    initialStateType,
-                    customPauliString,
-                    selectedPreset: selectedPreset
-                });
-            }
+            // Create an array of I's with length latticeSize
+            const stateArray = Array(parseInt(latticeSize) || 500).fill('I');
+            
+            // Replace I's with other operators at specified positions
+            operators.forEach(op => {
+                if (op.position >= 0 && op.position < stateArray.length) {
+                    stateArray[op.position] = op.type;
+                }
+            });
+            
+            // Join into a string
+            const customString = stateArray.join('');
+            
+            onRunSimulation({
+                latticeSize: parseInt(latticeSize) || 500,
+                timeSteps: parseInt(timeSteps) || 250,
+                initialStateType: 'custom',
+                customPauliString: customString,
+                selectedPreset: selectedPreset
+            });
         }
     };
     
@@ -183,7 +167,18 @@ export function SimulationControls({
     
     return (
         <div className="simulation-controls">
-            <h3>Simulation Parameters</h3>
+            <h3 style={{ textAlign: 'center' }}>Simulation Parameters</h3>
+            
+            <div className="control-group">
+                <label>Rule Matrix:</label>
+                <select 
+                    id="rule-matrix-select"
+                    style={{ width: '100%', marginBottom: '10px' }}
+                >
+                    <option value="default">Default Rule Matrix</option>
+                    <option value="alternate">Alternate Rule Matrix</option>
+                </select>
+            </div>
             
             <div className="control-group">
                 <label htmlFor="preset-select">Preset Configuration:</label>
@@ -225,128 +220,74 @@ export function SimulationControls({
                 />
             </div>
             
+            <h3 style={{ textAlign: 'center', margin: '20px 0 10px' }}>Initial Configuration</h3>
+            
             <div className="control-group">
-                <label>Initial State:</label>
-                <div className="radio-group">
-                    <label>
-                        <input
-                            type="radio"
-                            name="initial-state"
-                            value="custom-ops"
-                            checked={initialStateType === 'custom-ops'}
-                            onChange={() => setInitialStateType('custom-ops')}
-                        />
-                        Non-identity Operators
-                    </label>
-                    <label>
-                        <input
-                            type="radio"
-                            name="initial-state"
-                            value="random"
-                            checked={initialStateType === 'random'}
-                            onChange={() => setInitialStateType('random')}
-                        />
-                        Random
-                    </label>
-                    <label>
-                        <input
-                            type="radio"
-                            name="initial-state"
-                            value="custom"
-                            checked={initialStateType === 'custom'}
-                            onChange={() => setInitialStateType('custom')}
-                        />
-                        Custom Pauli String
-                    </label>
+                <label>Non-identity Operators: {operators.length}</label>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+                    <button 
+                        type="button" 
+                        onClick={addOperator}
+                        disabled={operators.length >= latticeSize}
+                        style={{ marginRight: '5px' }}
+                    >
+                        +
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
+                        disabled={operators.length <= 1}
+                    >
+                        -
+                    </button>
+                </div>
+                
+                <div className="operators-list" style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto' }}>
+                    {operators.map((op, index) => (
+                        <div key={index} style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            marginBottom: '5px',
+                            padding: '5px',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '4px'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                <label style={{ marginRight: '10px' }}>Type:</label>
+                                <select 
+                                    value={op.type} 
+                                    onChange={(e) => updateOperator(index, 'type', e.target.value)}
+                                    style={{ marginRight: '15px' }}
+                                >
+                                    <option value="X">X</option>
+                                    <option value="Y">Y</option>
+                                    <option value="Z">Z</option>
+                                </select>
+                                
+                                <label style={{ marginRight: '10px' }}>Position:</label>
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    max={latticeSize - 1}
+                                    value={op.position}
+                                    onChange={(e) => updateOperator(index, 'position', e.target.value)}
+                                    style={{ width: '60px' }}
+                                />
+                            </div>
+                            
+                            <button 
+                                type="button" 
+                                onClick={() => removeOperator(index)}
+                                disabled={operators.length <= 1}
+                                style={{ marginLeft: '10px' }}
+                            >
+                                ×
+                            </button>
+                        </div>
+                    ))}
                 </div>
             </div>
-            
-            {initialStateType === 'custom-ops' && (
-                <div className="non-identity-operators">
-                    <div className="control-group">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label>Non-identity Operators: {operators.length}</label>
-                            <div>
-                                <button 
-                                    type="button" 
-                                    onClick={addOperator}
-                                    disabled={operators.length >= latticeSize}
-                                    style={{ marginRight: '5px' }}
-                                >
-                                    +
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
-                                    disabled={operators.length <= 1}
-                                >
-                                    -
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="operators-list" style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto' }}>
-                        {operators.map((op, index) => (
-                            <div key={index} style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center',
-                                marginBottom: '5px',
-                                padding: '5px',
-                                backgroundColor: '#f5f5f5',
-                                borderRadius: '4px'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center' }}>
-                                    <label style={{ marginRight: '10px' }}>Type:</label>
-                                    <select 
-                                        value={op.type} 
-                                        onChange={(e) => updateOperator(index, 'type', e.target.value)}
-                                        style={{ marginRight: '15px' }}
-                                    >
-                                        <option value="X">X</option>
-                                        <option value="Y">Y</option>
-                                        <option value="Z">Z</option>
-                                    </select>
-                                    
-                                    <label style={{ marginRight: '10px' }}>Position:</label>
-                                    <input 
-                                        type="number" 
-                                        min="0" 
-                                        max={latticeSize - 1}
-                                        value={op.position}
-                                        onChange={(e) => updateOperator(index, 'position', e.target.value)}
-                                        style={{ width: '60px' }}
-                                    />
-                                </div>
-                                
-                                <button 
-                                    type="button" 
-                                    onClick={() => removeOperator(index)}
-                                    disabled={operators.length <= 1}
-                                    style={{ marginLeft: '10px' }}
-                                >
-                                    ×
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-            
-            {initialStateType === 'custom' && (
-                <div className="control-group">
-                    <label htmlFor="custom-pauli">Pauli String (I, X, Z, Y):</label>
-                    <input
-                        id="custom-pauli"
-                        type="text"
-                        placeholder="e.g., IXZYI..."
-                        value={customPauliString}
-                        onChange={(e) => setCustomPauliString(e.target.value.toUpperCase())}
-                    />
-                    <small>Enter a string of I, X, Z, Y with length {latticeSize}</small>
-                </div>
-            )}
             
             <div className="button-group">
                 <button className="run-button" onClick={handleRunSimulation}>
