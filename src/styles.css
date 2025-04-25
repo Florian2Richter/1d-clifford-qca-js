@@ -271,6 +271,8 @@ button:active {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     transition: background-color var(--transition-speed), border-color var(--transition-speed);
+    padding: 0;
+    color: var(--text-color-primary);
 }
 
 .matrix-table input:focus {
@@ -301,7 +303,7 @@ button:active {
     width: 100%;
     overflow-x: auto;
     margin: 10px 0;
-    padding: 5px;
+    padding: 0;
     background-color: var(--foreground-color);
     border-radius: 4px;
     box-shadow: var(--shadow-light);
@@ -321,6 +323,22 @@ button:active {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Fix for matrix number inputs */
+.matrix-table input[type="number"] {
+    text-align: center;
+    font-weight: bold;
+    color: var(--text-color-primary);
+    font-size: 1.1rem;
+    -moz-appearance: textfield; /* Firefox */
+}
+
+/* Remove spinner buttons for Firefox */
+.matrix-table input[type="number"]::-webkit-inner-spin-button,
+.matrix-table input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* Tooltip styles */

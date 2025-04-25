@@ -25,6 +25,10 @@ export function SimulationControls({
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
     const [selectedPreset, setSelectedPreset] = useState('Custom');
+    // Make a deep copy of the default rule matrix to ensure it's correctly initialized
+    const [ruleMatrix, setRuleMatrix] = useState(
+        DEFAULT_RULE_MATRIX.map(row => [...row])
+    );
     
     // For multiple operators
     const [operators, setOperators] = useState([
@@ -39,6 +43,9 @@ export function SimulationControls({
             // Update operators based on preset
             const newOperators = [...preset.initialState.operators];
             setOperators(newOperators);
+            
+            // Update rule matrix based on preset
+            setRuleMatrix(preset.ruleMatrix.map(row => [...row]));
         }
     }, [selectedPreset]);
     
@@ -124,7 +131,8 @@ export function SimulationControls({
                 timeSteps: parseInt(timeSteps) || 250,
                 initialStateType: 'custom',
                 customPauliString: customString,
-                selectedPreset: selectedPreset
+                selectedPreset: selectedPreset,
+                ruleMatrix: ruleMatrix
             });
         }
     };
@@ -165,19 +173,77 @@ export function SimulationControls({
         }
     };
     
+    const handleRuleMatrixChange = (newMatrix) => {
+        setRuleMatrix(newMatrix.map(row => [...row]));
+        // If we're on a preset, switch to Custom when the rule matrix is changed
+        if (selectedPreset !== 'Custom') {
+            setSelectedPreset('Custom');
+        }
+    };
+    
     return (
         <div className="simulation-controls">
             <h3 style={{ textAlign: 'center' }}>Simulation Parameters</h3>
             
             <div className="control-group">
                 <label>Rule Matrix:</label>
-                <select 
-                    id="rule-matrix-select"
-                    style={{ width: '100%', marginBottom: '10px' }}
-                >
-                    <option value="default">Default Rule Matrix</option>
-                    <option value="alternate">Alternate Rule Matrix</option>
-                </select>
+                <div style={{ marginTop: '10px' }}>
+                    <div className="rule-matrix-editor">
+                        <div className="matrix-container">
+                            <div className="matrix-labels">
+                                <div className="matrix-label">A_left</div>
+                                <div className="matrix-label">A_center</div>
+                                <div className="matrix-label">A_right</div>
+                            </div>
+                            <table className="matrix-table">
+                                <tbody>
+                                    {ruleMatrix.map((row, rowIndex) => (
+                                        <tr key={rowIndex}>
+                                            {row.map((cell, colIndex) => (
+                                                <td 
+                                                    key={colIndex}
+                                                    className={
+                                                        colIndex < 2 ? 'left-matrix' : 
+                                                        colIndex < 4 ? 'center-matrix' : 'right-matrix'
+                                                    }
+                                                >
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="1"
+                                                        value={cell}
+                                                        style={{ 
+                                                            textAlign: 'center',
+                                                            fontWeight: 'bold',
+                                                            fontSize: '1.1rem'
+                                                        }}
+                                                        onChange={(e) => {
+                                                            let newValue = parseInt(e.target.value, 10);
+                                                            // Ensure binary value (0 or 1)
+                                                            if (isNaN(newValue) || newValue < 0) newValue = 0;
+                                                            if (newValue > 1) newValue = 1;
+                                                            
+                                                            const newMatrix = [...ruleMatrix];
+                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                            newMatrix[rowIndex][colIndex] = newValue;
+                                                            handleRuleMatrixChange(newMatrix);
+                                                        }}
+                                                    />
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <button 
+                            className="reset-matrix-button" 
+                            onClick={() => handleRuleMatrixChange(DEFAULT_RULE_MATRIX)}
+                        >
+                            Reset to Default
+                        </button>
+                    </div>
+                </div>
             </div>
             
             <div className="control-group">
@@ -358,7 +424,22 @@ export function RuleMatrixEditor({ ruleMatrix = DEFAULT_RULE_MATRIX, onRuleMatri
                                             min="0"
                                             max="1"
                                             value={cell}
-                                            onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                                            style={{ 
+                                                textAlign: 'center',
+                                                fontWeight: 'bold',
+                                                fontSize: '1.1rem'
+                                            }}
+                                            onChange={(e) => {
+                                                let newValue = parseInt(e.target.value, 10);
+                                                // Ensure binary value (0 or 1)
+                                                if (isNaN(newValue) || newValue < 0) newValue = 0;
+                                                if (newValue > 1) newValue = 1;
+                                                
+                                                const newMatrix = [...matrix];
+                                                newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                newMatrix[rowIndex][colIndex] = newValue;
+                                                handleCellChange(rowIndex, colIndex, newValue);
+                                            }}
                                         />
                                     </td>
                                 ))}

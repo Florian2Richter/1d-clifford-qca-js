@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CliffordQCA } from './simulation/automaton.js';
 import { pauliStringToF2 } from './simulation/clifford.js';
-import { SimulationControls, RuleMatrixEditor } from './ui/controls.js';
+import { SimulationControls } from './ui/controls.js';
 import { MainLayout, Section, TwoColumnLayout } from './ui/layout.js';
 import { renderSpacetimeDiagram, renderCurrentState } from './visualization/spacetime.js';
 
@@ -172,6 +172,11 @@ export function App() {
     }, [history]);
     
     const handleRunSimulation = (params) => {
+        // If params includes a ruleMatrix, update our state
+        if (params.ruleMatrix) {
+            // Create a deep copy to avoid reference issues
+            setRuleMatrix(params.ruleMatrix.map(row => [...row]));
+        }
         setSimulationParams(params);
     };
     
@@ -197,10 +202,6 @@ export function App() {
         renderTimeRef.current = 0;
     };
     
-    const handleRuleMatrixChange = (newMatrix) => {
-        setRuleMatrix(newMatrix);
-    };
-    
     return (
         <MainLayout>
             <TwoColumnLayout
@@ -223,13 +224,6 @@ export function App() {
                             <SimulationControls
                                 onRunSimulation={handleRunSimulation}
                                 onResetSimulation={handleResetSimulation}
-                            />
-                        </Section>
-                        
-                        <Section title="Rule Matrix" collapsible={true}>
-                            <RuleMatrixEditor
-                                ruleMatrix={ruleMatrix}
-                                onRuleMatrixChange={handleRuleMatrixChange}
                             />
                         </Section>
                         
