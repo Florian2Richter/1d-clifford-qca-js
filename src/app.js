@@ -245,12 +245,17 @@ export function App() {
                 rightColumn={
                     <>
                         <Section title="Current State">
-                            <div 
+                            <canvas 
                                 id="current-state" 
                                 ref={currentStateRef}
                                 className="visualization-container"
-                                style={{ height: '40px', minHeight: 'unset' }}
-                            ></div>
+                                style={{ 
+                                    minHeight: 'unset',
+                                    display: 'block',
+                                    padding: 0,
+                                    margin: 0
+                                }}
+                            ></canvas>
                         </Section>
                         
                         <Section title="Spacetime Diagram" 
