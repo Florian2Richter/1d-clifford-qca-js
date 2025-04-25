@@ -249,6 +249,7 @@ export function App() {
                                 id="current-state" 
                                 ref={currentStateRef}
                                 className="visualization-container"
+                                style={{ height: '40px', minHeight: 'unset' }}
                             ></div>
                         </Section>
                         

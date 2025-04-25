@@ -183,11 +183,11 @@ export function renderCurrentState(el, state, sizeParam = null) {
     if (!state || !state.length) return;
     const n = state.length;
     const w = container.node().getBoundingClientRect().width;
-    const s = sizeParam || Math.min(30, Math.floor(w / n));
+    const s = sizeParam || Math.min(15, Math.floor(w / n));
     const width = n * s;
     const canvas = container.append('canvas')
         .attr('width', width)
-        .attr('height', s + 10)
+        .attr('height', s + 5)
         .style('width', width + 'px')
         .node();
     const ctx = canvas.getContext('2d');
