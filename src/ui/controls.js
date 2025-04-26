@@ -207,28 +207,33 @@ export function SimulationControls({
                                                         colIndex < 4 ? 'center-matrix' : 'right-matrix'
                                                     }
                                                 >
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max="1"
-                                                        value={cell}
-                                                        style={{ 
-                                                            textAlign: 'center',
-                                                            fontWeight: 'bold',
-                                                            fontSize: '1.1rem'
-                                                        }}
-                                                        onChange={(e) => {
-                                                            let newValue = parseInt(e.target.value, 10);
-                                                            // Ensure binary value (0 or 1)
-                                                            if (isNaN(newValue) || newValue < 0) newValue = 0;
-                                                            if (newValue > 1) newValue = 1;
-                                                            
-                                                            const newMatrix = [...ruleMatrix];
-                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                            newMatrix[rowIndex][colIndex] = newValue;
-                                                            handleRuleMatrixChange(newMatrix);
-                                                        }}
-                                                    />
+                                                    <div className="number-picker">
+                                                        <button 
+                                                            className="number-picker-btn"
+                                                            onClick={() => {
+                                                                const newMatrix = [...ruleMatrix];
+                                                                newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                // Decrement with modulo 2
+                                                                newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] === 0) ? 1 : 0;
+                                                                handleRuleMatrixChange(newMatrix);
+                                                            }}
+                                                        >
+                                                            −
+                                                        </button>
+                                                        <span className="number-picker-value">{cell}</span>
+                                                        <button 
+                                                            className="number-picker-btn"
+                                                            onClick={() => {
+                                                                const newMatrix = [...ruleMatrix];
+                                                                newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                // Increment with modulo 2
+                                                                newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] + 1) % 2;
+                                                                handleRuleMatrixChange(newMatrix);
+                                                            }}
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             ))}
                                         </tr>
@@ -419,28 +424,33 @@ export function RuleMatrixEditor({ ruleMatrix = DEFAULT_RULE_MATRIX, onRuleMatri
                                             colIndex < 4 ? 'center-matrix' : 'right-matrix'
                                         }
                                     >
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="1"
-                                            value={cell}
-                                            style={{ 
-                                                textAlign: 'center',
-                                                fontWeight: 'bold',
-                                                fontSize: '1.1rem'
-                                            }}
-                                            onChange={(e) => {
-                                                let newValue = parseInt(e.target.value, 10);
-                                                // Ensure binary value (0 or 1)
-                                                if (isNaN(newValue) || newValue < 0) newValue = 0;
-                                                if (newValue > 1) newValue = 1;
-                                                
-                                                const newMatrix = [...matrix];
-                                                newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                newMatrix[rowIndex][colIndex] = newValue;
-                                                handleCellChange(rowIndex, colIndex, newValue);
-                                            }}
-                                        />
+                                        <div className="number-picker">
+                                            <button 
+                                                className="number-picker-btn"
+                                                onClick={() => {
+                                                    const newMatrix = [...matrix];
+                                                    newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                    // Decrement with modulo 2
+                                                    newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] === 0) ? 1 : 0;
+                                                    handleCellChange(rowIndex, colIndex, matrix[rowIndex][colIndex] === 0 ? 1 : 0);
+                                                }}
+                                            >
+                                                −
+                                            </button>
+                                            <span className="number-picker-value">{cell}</span>
+                                            <button 
+                                                className="number-picker-btn"
+                                                onClick={() => {
+                                                    const newMatrix = [...matrix];
+                                                    newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                    // Increment with modulo 2
+                                                    newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] + 1) % 2;
+                                                    handleCellChange(rowIndex, colIndex, (matrix[rowIndex][colIndex] + 1) % 2);
+                                                }}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
                                     </td>
                                 ))}
                             </tr>
