@@ -24,7 +24,7 @@ export function SimulationControls({
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
-    const [selectedPreset, setSelectedPreset] = useState('Custom');
+    const [selectedPreset, setSelectedPreset] = useState('Periodic');
     // Make a deep copy of the default rule matrix to ensure it's correctly initialized
     const [ruleMatrix, setRuleMatrix] = useState(
         DEFAULT_RULE_MATRIX.map(row => [...row])
@@ -92,9 +92,12 @@ export function SimulationControls({
         const newOperators = [...operators];
         
         if (field === 'position') {
-            // Validate position within lattice bounds
-            const position = parseInt(value);
-            if (isNaN(position) || position < 0 || position >= latticeSize) return;
+            // Validate and process position
+            let position = parseInt(value);
+            if (isNaN(position)) return;
+            
+            // Apply modulo to ensure position is within lattice bounds
+            position = ((position % latticeSize) + latticeSize) % latticeSize;
             
             // Check for duplicates
             if (newOperators.some((op, i) => i !== index && op.position === position)) return;
@@ -124,7 +127,7 @@ export function SimulationControls({
             });
             
             // Join into a string
-            const customString = stateArray.join('');
+            const customString = 'OPERATORS'; // Special marker to use operators array
             
             onRunSimulation({
                 latticeSize: parseInt(latticeSize) || 500,
@@ -132,7 +135,8 @@ export function SimulationControls({
                 initialStateType: 'custom',
                 customPauliString: customString,
                 selectedPreset: selectedPreset,
-                ruleMatrix: ruleMatrix
+                ruleMatrix: ruleMatrix,
+                operators: operators // Pass the operators directly
             });
         }
     };
@@ -147,14 +151,14 @@ export function SimulationControls({
     const handleLatticeSize = (value) => {
         const parsedValue = parseInt(value);
         if (!isNaN(parsedValue) && parsedValue > 0) {
+            const oldSize = latticeSize;
             setLatticeSize(parsedValue);
             
-            // Update operators if their positions are now out of bounds
+            // Update operators positions using modulo to maintain relative positions
             const newOperators = operators.map(op => {
-                if (op.position >= parsedValue) {
-                    return { ...op, position: parsedValue - 1 };
-                }
-                return op;
+                // Keep the same relative position but apply modulo to ensure it's within bounds
+                const newPosition = op.position % parsedValue;
+                return { ...op, position: newPosition };
             });
             
             setOperators(newOperators);
@@ -175,9 +179,9 @@ export function SimulationControls({
     
     const handleRuleMatrixChange = (newMatrix) => {
         setRuleMatrix(newMatrix.map(row => [...row]));
-        // If we're on a preset, switch to Custom when the rule matrix is changed
-        if (selectedPreset !== 'Custom') {
-            setSelectedPreset('Custom');
+        // If we're on a preset, switch to Periodic when the rule matrix is changed
+        if (selectedPreset !== 'Periodic') {
+            setSelectedPreset('Periodic');
         }
     };
     
@@ -192,9 +196,35 @@ export function SimulationControls({
                 </button>
             </div>
             
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <div className="control-group" style={{ flex: 1 }}>
+                    <label htmlFor="lattice-size">Lattice Size:</label>
+                    <input
+                        id="lattice-size"
+                        type="number"
+                        min="2"
+                        max="1000"
+                        value={latticeSize}
+                        onChange={(e) => handleLatticeSize(e.target.value)}
+                    />
+                </div>
+                
+                <div className="control-group" style={{ flex: 1 }}>
+                    <label htmlFor="time-steps">Time Steps:</label>
+                    <input
+                        id="time-steps"
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={timeSteps}
+                        onChange={(e) => handleTimeSteps(e.target.value)}
+                    />
+                </div>
+            </div>
+            
             <div className="control-group">
-                <h3 style={{ textAlign: 'center', margin: '20px 0 10px' }}>Rule Matrix</h3>
-                <div style={{ marginTop: '10px' }}>
+                <h3 style={{ textAlign: 'center', margin: '10px 0 10px' }}>Rule Matrices</h3>
+                <div style={{ marginTop: '5px' }}>
                     <div className="rule-matrix-editor">
                         <div className="matrix-vertical-container">
                             {/* A_left Matrix */}
@@ -346,56 +376,35 @@ export function SimulationControls({
                 >
                     {Object.keys(PRESETS).map(preset => (
                         <option key={preset} value={preset}>
-                            {preset} - {PRESETS[preset].description}
+                            {preset}
                         </option>
                     ))}
                 </select>
             </div>
             
-            <div className="control-group">
-                <label htmlFor="lattice-size">Lattice Size:</label>
-                <input
-                    id="lattice-size"
-                    type="number"
-                    min="2"
-                    max="1000"
-                    value={latticeSize}
-                    onChange={(e) => handleLatticeSize(e.target.value)}
-                />
-            </div>
-            
-            <div className="control-group">
-                <label htmlFor="time-steps">Time Steps:</label>
-                <input
-                    id="time-steps"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={timeSteps}
-                    onChange={(e) => handleTimeSteps(e.target.value)}
-                />
-            </div>
-            
             <h3 style={{ textAlign: 'center', margin: '20px 0 10px' }}>Initial Configuration</h3>
             
             <div className="control-group">
-                <label>Non-identity Operators: {operators.length}</label>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-                    <button 
-                        type="button" 
-                        onClick={addOperator}
-                        disabled={operators.length >= latticeSize}
-                        style={{ marginRight: '5px' }}
-                    >
-                        +
-                    </button>
-                    <button 
-                        type="button" 
-                        onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
-                        disabled={operators.length <= 1}
-                    >
-                        -
-                    </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <label style={{ margin: 0 }}>Non-identity Operators: {operators.length}</label>
+                    <div style={{ display: 'flex' }}>
+                        <button 
+                            type="button" 
+                            onClick={addOperator}
+                            disabled={operators.length >= latticeSize}
+                            style={{ marginRight: '5px', padding: '2px 8px' }}
+                        >
+                            +
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
+                            disabled={operators.length <= 1}
+                            style={{ padding: '2px 8px' }}
+                        >
+                            -
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="operators-list" style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto' }}>
@@ -409,7 +418,7 @@ export function SimulationControls({
                             backgroundColor: '#f5f5f5',
                             borderRadius: '4px'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                                 <label style={{ marginRight: '10px' }}>Type:</label>
                                 <select 
                                     value={op.type} 
@@ -423,23 +432,18 @@ export function SimulationControls({
                                 
                                 <label style={{ marginRight: '10px' }}>Position:</label>
                                 <input 
-                                    type="number" 
-                                    min="0" 
-                                    max={latticeSize - 1}
+                                    type="text" 
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     value={op.position}
                                     onChange={(e) => updateOperator(index, 'position', e.target.value)}
-                                    style={{ width: '60px' }}
+                                    style={{ 
+                                        width: '50px',
+                                        textAlign: 'center',
+                                        padding: '4px'
+                                    }}
                                 />
                             </div>
-                            
-                            <button 
-                                type="button" 
-                                onClick={() => removeOperator(index)}
-                                disabled={operators.length <= 1}
-                                style={{ marginLeft: '10px' }}
-                            >
-                                ×
-                            </button>
                         </div>
                     ))}
                 </div>

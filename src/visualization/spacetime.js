@@ -9,6 +9,16 @@ let cellSize = 0;
 let lastLatticeSize = 0;
 
 /**
+ * Calculate the appropriate cell size for visualization
+ */
+function calculateCellSize(containerWidth, containerHeight, latticeSize, minSize = 1) {
+  return Math.max(minSize, Math.min(
+    Math.floor(containerWidth / latticeSize),
+    Math.floor(containerHeight / 20)
+  ));
+}
+
+/**
  * Reset the spacetime diagram rendering state
  * (Call this when switching simulations)
  */
@@ -39,10 +49,7 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
 
   // Determine cell size - ensure minimum size of 1px for large lattices
   if (!cellSize || lastLatticeSize !== latticeSize) {
-    cellSize = cellSizeParam || Math.max(1, Math.min(
-      Math.floor(containerWidth  / latticeSize),
-      Math.floor(containerHeight / 20)
-    ));
+    cellSize = cellSizeParam || calculateCellSize(containerWidth, containerHeight, latticeSize);
     lastLatticeSize = latticeSize;
   }
   const width = latticeSize * cellSize;
@@ -100,6 +107,9 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
 
   drawTimeSteps(history, currentTimeStep, latticeSize);
   currentTimeStep = history.length;
+
+  // Return the cell size for other visualizations to use
+  return cellSize;
 
   function drawGrid(latticeSize, height, width) {
     // Only draw grid lines if lattice size is less than 250
@@ -171,14 +181,19 @@ export function renderCurrentState(elId, state, sizeParam = null) {
     const n = state.length;
     
     // Calculate cell size based on available width
-    const containerWidth = canvas.parentNode.clientWidth;
+    // Use getBoundingClientRect to match the approach used in spacetime diagram
+    const container = canvas.parentNode;
+    const containerWidth = container.getBoundingClientRect().width;
     
-    // Ensure minimum cell size of 1px to prevent canvas from disappearing
-    // This handles very large lattice sizes (>1900)
-    const s = sizeParam || Math.max(1, Math.min(15, Math.floor(containerWidth / n)));
+    // Use the globally calculated cell size from the spacetime diagram
+    // This ensures consistent cell sizes between the visualizations
+    const s = cellSize || sizeParam || 1;
     
-    const width = n * s;
-    const height = s;
+    // Get the full container width to ensure both visualizations use the same width
+    const width = containerWidth;
+    
+    // Increase height to make cells more visible
+    const height = Math.max(s, 40);
     
     // Important: Set both physical and CSS dimensions
     canvas.width = width;
@@ -194,6 +209,10 @@ export function renderCurrentState(elId, state, sizeParam = null) {
     // Store whether grid lines should be drawn
     const drawGridLines = n < 250;
     
+    // Draw cells, centered in the available width
+    const startX = Math.floor((width - (n * s)) / 2);
+    const startY = Math.floor((height - s) / 2); // Center vertically
+    
     // Draw cells
     for (let x = 0; x < n; x++) {
         const p = state[x];
@@ -202,14 +221,14 @@ export function renderCurrentState(elId, state, sizeParam = null) {
         
         ctx.fillStyle = color;
         ctx.globalAlpha = label === 'I' ? 0.3 : 0.9;
-        ctx.fillRect(x * s, 0, s, s);
+        ctx.fillRect(startX + (x * s), startY, s, s);
         
         // Only draw cell borders if lattice size is less than 250
         if (drawGridLines) {
             ctx.globalAlpha = 1;
             ctx.strokeStyle = '#ddd';
             ctx.lineWidth = 0.5;
-            ctx.strokeRect(x * s, 0, s, s);
+            ctx.strokeRect(startX + (x * s), startY, s, s);
         }
     }
 }

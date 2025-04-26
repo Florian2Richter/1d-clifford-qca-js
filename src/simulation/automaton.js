@@ -11,11 +11,11 @@ import { mat2, vec2 } from 'gl-matrix';
  * Preset configurations for the simulation
  */
 export const PRESETS = {
-    "Custom": {
+    "Periodic": {
         description: "Custom configuration (current settings)",
         ruleMatrix: [
-            [1, 0, 1, 1, 0, 1], // [Left 1,0,0,1 | Center 1,1,0,1 | Right 0,1,1,0]
-            [0, 1, 0, 1, 1, 0]
+            [0, 0, 1, 1, 0, 0], // A_left=[0,0], A_center=[1,1], A_right=[0,0]
+            [0, 0, 1, 0, 0, 0]  // A_left=[0,0], A_center=[1,0], A_right=[0,0]
         ],
         initialState: {
             operators: [
@@ -54,7 +54,7 @@ export const PRESETS = {
  * Default rule matrix for the simulation (2x6 over F2)
  * Format: [A_left | A_center | A_right]
  */
-export const DEFAULT_RULE_MATRIX = PRESETS.Custom.ruleMatrix;
+export const DEFAULT_RULE_MATRIX = PRESETS.Periodic.ruleMatrix;
 
 /**
  * CliffordQCA class for simulating 1D Clifford Quantum Cellular Automata

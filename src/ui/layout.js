@@ -179,6 +179,93 @@ export function TwoColumnLayout({ leftColumn, rightColumn }) {
     );
 }
 
+/**
+ * Three-column layout for controls, visualization, and information
+ * 
+ * @param {Object} props - Component properties
+ * @param {React.ReactNode} props.leftColumn - Content for left column
+ * @param {React.ReactNode} props.centerColumn - Content for center column
+ * @param {React.ReactNode} props.rightColumn - Content for right column
+ */
+export function ThreeColumnLayout({ leftColumn, centerColumn, rightColumn }) {
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    
+    return (
+        <div className="three-column-layout" style={{ 
+            width: '100%',
+            display: 'grid',
+            gridTemplateColumns: sidebarCollapsed ? '60px 1fr 350px' : '300px 1fr 350px',
+            gap: '10px'
+        }}>
+            <div className="left-column" style={{ 
+                transition: 'width 0.3s',
+                position: 'relative'
+            }}>
+                <div 
+                    style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '-15px',
+                        width: '30px',
+                        height: '30px',
+                        background: 'white',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+                        zIndex: 100,
+                        transition: 'transform 0.3s'
+                    }}
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                >
+                    <span 
+                        style={{ 
+                            transition: 'transform 0.3s',
+                            transform: sidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+                            fontSize: '1rem'
+                        }}
+                    >
+                        ◀
+                    </span>
+                </div>
+                
+                <div style={{ 
+                    display: sidebarCollapsed ? 'none' : 'block',
+                    opacity: sidebarCollapsed ? 0 : 1,
+                    transition: 'opacity 0.3s'
+                }}>
+                    {leftColumn}
+                </div>
+                
+                {sidebarCollapsed && (
+                    <div style={{ 
+                        writingMode: 'vertical-rl',
+                        textOrientation: 'mixed',
+                        height: '100%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        fontSize: '1.2rem',
+                        color: 'var(--text-color-secondary)',
+                        padding: '20px 0'
+                    }}>
+                        Controls
+                    </div>
+                )}
+            </div>
+            
+            <div className="center-column">
+                {centerColumn}
+            </div>
+            
+            <div className="right-column">
+                {rightColumn}
+            </div>
+        </div>
+    );
+}
+
 /* Add a style tag for additional CSS classes */
 const styles = document.createElement('style');
 styles.innerHTML = `

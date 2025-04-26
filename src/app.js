@@ -2,10 +2,10 @@
  * Main application component for 1D Clifford QCA Simulator
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { CliffordQCA } from './simulation/automaton.js';
+import { CliffordQCA, PRESETS } from './simulation/automaton.js';
 import { pauliStringToF2 } from './simulation/clifford.js';
 import { SimulationControls } from './ui/controls.js';
-import { MainLayout, Section, TwoColumnLayout } from './ui/layout.js';
+import { MainLayout, Section, ThreeColumnLayout } from './ui/layout.js';
 import { renderSpacetimeDiagram, renderCurrentState } from './visualization/spacetime.js';
 
 export function App() {
@@ -60,33 +60,48 @@ export function App() {
         const newQca = new CliffordQCA(latticeSize, ruleMatrix);
         
         // If a preset is selected, apply it
-        if (selectedPreset && selectedPreset !== 'Custom') {
-            newQca.setPreset(selectedPreset, latticeSize);
-        } else {
-            // Set initial state based on type
-            if (initialStateType === 'single-x') {
-                newQca.setSingleX(initialPosition);
-            } else if (initialStateType === 'random') {
-                newQca.setRandomState();
-            } else if (initialStateType === 'custom') {
-                try {
-                    // Validate and pad/truncate custom string as needed
-                    let pauliArray;
-                    if (customPauliString.length === latticeSize) {
-                        pauliArray = pauliStringToF2(customPauliString);
-                    } else if (customPauliString.length < latticeSize) {
-                        // Pad with 'I' if too short
-                        const paddedString = customPauliString.padEnd(latticeSize, 'I');
-                        pauliArray = pauliStringToF2(paddedString);
-                    } else {
-                        // Truncate if too long
-                        const truncatedString = customPauliString.substring(0, latticeSize);
-                        pauliArray = pauliStringToF2(truncatedString);
+        if (selectedPreset) {
+            // Handle the case where "Custom" might still be in state but was renamed to "Periodic"
+            const presetName = selectedPreset === 'Custom' ? 'Periodic' : selectedPreset;
+            
+            // Always set the rule matrix from the preset
+            newQca.setRuleMatrix(PRESETS[presetName].ruleMatrix);
+            
+            // Only apply the preset's initial state if not using a custom state
+            if (presetName !== 'Periodic' && initialStateType !== 'custom') {
+                newQca.setPreset(presetName, latticeSize);
+            } else {
+                // Set initial state based on type
+                if (initialStateType === 'single-x') {
+                    newQca.setSingleX(initialPosition);
+                } else if (initialStateType === 'random') {
+                    newQca.setRandomState();
+                } else if (initialStateType === 'custom') {
+                    try {
+                        if (customPauliString === 'OPERATORS') {
+                            // Extract operators from the UI
+                            const operators = simulationParams.operators || [];
+                            newQca.setMultipleOperators(operators);
+                        } else {
+                            // Validate and pad/truncate custom string as needed
+                            let pauliArray;
+                            if (customPauliString.length === latticeSize) {
+                                pauliArray = pauliStringToF2(customPauliString);
+                            } else if (customPauliString.length < latticeSize) {
+                                // Pad with 'I' if too short
+                                const paddedString = customPauliString.padEnd(latticeSize, 'I');
+                                pauliArray = pauliStringToF2(paddedString);
+                            } else {
+                                // Truncate if too long
+                                const truncatedString = customPauliString.substring(0, latticeSize);
+                                pauliArray = pauliStringToF2(truncatedString);
+                            }
+                            newQca.setState(pauliArray);
+                        }
+                    } catch (error) {
+                        console.error('Invalid Pauli string:', error);
+                        newQca.reset(); // Reset to all identity if invalid
                     }
-                    newQca.setState(pauliArray);
-                } catch (error) {
-                    console.error('Invalid Pauli string:', error);
-                    newQca.reset(); // Reset to all identity if invalid
                 }
             }
         }
@@ -159,11 +174,11 @@ export function App() {
             // Measure rendering time
             const renderStartTime = performance.now();
             
-            // Render current state (always the last item in history)
-            renderCurrentState('current-state', history[history.length - 1]);
+            // Render spacetime diagram first to calculate the cell size
+            const usedCellSize = renderSpacetimeDiagram('spacetime-diagram', history);
             
-            // Render spacetime diagram with all accumulated history
-            renderSpacetimeDiagram('spacetime-diagram', history);
+            // Render current state using the same cell size
+            renderCurrentState('current-state', history[history.length - 1], usedCellSize);
             
             // Calculate rendering time and store in ref (avoiding re-render)
             const renderEndTime = performance.now();
@@ -204,22 +219,9 @@ export function App() {
     
     return (
         <MainLayout>
-            <TwoColumnLayout
+            <ThreeColumnLayout
                 leftColumn={
                     <>
-                        <Section title="About" collapsible={true} defaultExpanded={false}>
-                            <p>
-                                This simulator demonstrates a 1D Clifford Quantum Cellular Automaton,
-                                where each cell is represented by a Pauli operator (I, X, Z, Y)
-                                and evolves according to a local update rule.
-                            </p>
-                            <p>
-                                Clifford QCAs are important models for studying quantum information
-                                propagation and have applications in quantum error correction and 
-                                quantum simulation.
-                            </p>
-                        </Section>
-                        
                         <Section title="Simulation" collapsible={true}>
                             <SimulationControls
                                 onRunSimulation={handleRunSimulation}
@@ -236,7 +238,7 @@ export function App() {
                         </Section>
                     </>
                 }
-                rightColumn={
+                centerColumn={
                     <>
                         <Section title="Current State">
                             <canvas 
@@ -244,7 +246,8 @@ export function App() {
                                 ref={currentStateRef}
                                 className="visualization-container"
                                 style={{ 
-                                    minHeight: 'unset',
+                                    minHeight: '40px',
+                                    height: '40px',
                                     display: 'block',
                                     padding: 0,
                                     margin: 0
@@ -265,6 +268,22 @@ export function App() {
                                 className="visualization-container"
                                 style={{ flex: 1 }}
                             ></div>
+                        </Section>
+                    </>
+                }
+                rightColumn={
+                    <>
+                        <Section title="About" collapsible={true} defaultExpanded={true} style={{ height: '100%' }}>
+                            <p>
+                                This simulator demonstrates a 1D Clifford Quantum Cellular Automaton,
+                                where each cell is represented by a Pauli operator (I, X, Z, Y)
+                                and evolves according to a local update rule.
+                            </p>
+                            <p>
+                                Clifford QCAs are important models for studying quantum information
+                                propagation and have applications in quantum error correction and 
+                                quantum simulation.
+                            </p>
                         </Section>
                     </>
                 }

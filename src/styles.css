@@ -213,22 +213,25 @@ body {
 
 .control-group label {
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 1rem;
     margin-bottom: 5px;
     color: var(--text-color-secondary);
 }
 
 .control-group input[type="number"],
-.control-group input[type="text"] {
+.control-group input[type="text"],
+.control-group select,
+.control-group option {
     padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: 16px;
     transition: border-color var(--transition-speed);
 }
 
 .control-group input[type="number"]:focus,
-.control-group input[type="text"]:focus {
+.control-group input[type="text"]:focus,
+.control-group select:focus {
     border-color: var(--primary-color);
     outline: none;
     box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
@@ -266,7 +269,7 @@ button {
     color: white;
     cursor: pointer;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 16px;
     transition: background-color var(--transition-speed), transform var(--transition-speed);
     box-shadow: var(--shadow-light);
     text-transform: uppercase;
@@ -309,9 +312,10 @@ button:active {
 .matrix-vertical-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
     align-items: center;
     margin: 10px 0;
+    max-width: 100%;
 }
 
 .matrix-section {
@@ -339,15 +343,16 @@ button:active {
     justify-content: space-between;
     width: 100%;
     height: 100%;
-    border-radius: 4px;
+    border-radius: 6px;
     overflow: hidden;
     background-color: #ffffff;
     border: 1px solid #e0e0e0;
+    padding: 0 2px;
 }
 
 .number-picker-btn {
-    width: 20px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: none;
     background-color: #f5f5f5;
@@ -364,6 +369,7 @@ button:active {
     min-width: unset;
     text-transform: none;
     letter-spacing: normal;
+    border-radius: 3px;
 }
 
 .number-picker-btn:hover {
@@ -382,8 +388,8 @@ button:active {
     text-align: center;
     font-weight: bold;
     font-size: 14px;
-    padding: 0 3px;
-    min-width: 16px;
+    padding: 0 4px;
+    min-width: 12px;
 }
 
 .matrix-labels {
@@ -421,13 +427,16 @@ button:active {
 
 .matrix-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 2px;
+    table-layout: fixed;
 }
 
 .matrix-table td {
-    padding: 1px;
-    width: 32px;
-    height: 32px;
+    padding: 2px;
+    width: 40px;
+    height: 40px;
+    vertical-align: middle;
 }
 
 .matrix-table input {
@@ -520,4 +529,15 @@ button:active {
     z-index: 1000;
     box-shadow: var(--shadow-medium);
     max-width: 250px;
+}
+
+/* Hide spinner buttons on number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
 } 
