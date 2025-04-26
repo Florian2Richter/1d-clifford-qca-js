@@ -53,7 +53,8 @@ export function App() {
             initialStateType, 
             initialPosition, 
             customPauliString,
-            selectedPreset 
+            selectedPreset,
+            isNewPresetSelection
         } = simulationParams;
         
         // Create new QCA with updated size
@@ -64,12 +65,40 @@ export function App() {
             // Handle the case where "Custom" might still be in state but was renamed to "Periodic"
             const presetName = selectedPreset === 'Custom' ? 'Periodic' : selectedPreset;
             
-            // Always set the rule matrix from the preset
-            newQca.setRuleMatrix(PRESETS[presetName].ruleMatrix);
+            // Use the rule matrix provided by the UI (allows user modifications to persist)
+            // Only set the rule matrix from the preset if we're changing presets
+            if (isNewPresetSelection) {
+                newQca.setRuleMatrix(PRESETS[presetName].ruleMatrix);
+            } else {
+                // Use the user-modified rule matrix from the UI
+                newQca.setRuleMatrix(ruleMatrix);
+            }
             
             // Only apply the preset's initial state if not using a custom state
             if (presetName !== 'Periodic' && initialStateType !== 'custom') {
-                newQca.setPreset(presetName, latticeSize);
+                // For non-Periodic presets, apply the preset's initial state
+                const preset = PRESETS[presetName];
+                const centerOffset = Math.floor(latticeSize / 2) - 250;
+                
+                // Initialize with identity operators
+                const newState = Array(latticeSize).fill().map(() => [...PAULI.I]);
+                
+                // Place the operators according to the preset
+                preset.initialState.operators.forEach(op => {
+                    const adjustedPosition = op.position + centerOffset;
+                    const position = (adjustedPosition + latticeSize) % latticeSize;
+                    
+                    if (op.type === 'X') {
+                        newState[position] = [...PAULI.X];
+                    } else if (op.type === 'Y') {
+                        newState[position] = [...PAULI.Y];
+                    } else if (op.type === 'Z') {
+                        newState[position] = [...PAULI.Z];
+                    }
+                });
+                
+                // Set the state
+                newQca.setState(newState);
             } else {
                 // Set initial state based on type
                 if (initialStateType === 'single-x') {

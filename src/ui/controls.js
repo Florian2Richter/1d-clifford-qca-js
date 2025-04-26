@@ -25,6 +25,9 @@ export function SimulationControls({
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
     const [selectedPreset, setSelectedPreset] = useState('Periodic');
+    // Track whether we just selected a new preset
+    const [isNewPresetSelection, setIsNewPresetSelection] = useState(false);
+    
     // Make a deep copy of the default rule matrix to ensure it's correctly initialized
     const [ruleMatrix, setRuleMatrix] = useState(
         DEFAULT_RULE_MATRIX.map(row => [...row])
@@ -46,6 +49,9 @@ export function SimulationControls({
             
             // Update rule matrix based on preset
             setRuleMatrix(preset.ruleMatrix.map(row => [...row]));
+            
+            // Mark that we've just selected a new preset (will be reset after next run)
+            setIsNewPresetSelection(true);
         }
     }, [selectedPreset]);
     
@@ -112,6 +118,7 @@ export function SimulationControls({
     
     const handlePresetChange = (preset) => {
         setSelectedPreset(preset);
+        // This will trigger the useEffect above
     };
     
     const handleRunSimulation = () => {
@@ -136,8 +143,12 @@ export function SimulationControls({
                 customPauliString: customString,
                 selectedPreset: selectedPreset,
                 ruleMatrix: ruleMatrix,
-                operators: operators // Pass the operators directly
+                operators: operators, // Pass the operators directly
+                isNewPresetSelection: isNewPresetSelection // Let app know if we just changed presets
             });
+            
+            // Reset the new preset selection flag after running
+            setIsNewPresetSelection(false);
         }
     };
     
@@ -179,10 +190,7 @@ export function SimulationControls({
     
     const handleRuleMatrixChange = (newMatrix) => {
         setRuleMatrix(newMatrix.map(row => [...row]));
-        // If we're on a preset, switch to Periodic when the rule matrix is changed
-        if (selectedPreset !== 'Periodic') {
-            setSelectedPreset('Periodic');
-        }
+        // Do not automatically switch presets when rule matrix changes
     };
     
     return (
@@ -367,7 +375,7 @@ export function SimulationControls({
             </div>
             
             <div className="control-group">
-                <label htmlFor="preset-select">Preset Configuration:</label>
+                <label htmlFor="preset-select">Examples:</label>
                 <select 
                     id="preset-select"
                     value={selectedPreset}
