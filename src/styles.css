@@ -56,24 +56,40 @@ body {
 .app-header {
     margin-bottom: 0;
     text-align: center;
-    padding: 15px 0;
-    background-color: var(--foreground-color);
-    box-shadow: var(--shadow-light);
+    padding: 30px 0;
+    background-color: #1a3c5a;
+    color: white;
+    box-shadow: var(--shadow-medium);
     position: relative;
     z-index: 10;
 }
 
+.header-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
 .app-header h1 {
-    color: var(--primary-color);
+    color: white;
     margin: 0;
-    font-weight: 400;
-    font-size: 1.8rem;
+    font-weight: 300;
+    font-size: 2.4rem;
+    letter-spacing: 0.5px;
+}
+
+.header-prefix {
+    font-weight: 300;
+}
+
+.header-highlight {
+    font-weight: 500;
 }
 
 .app-header p {
-    color: var(--text-color-secondary);
-    margin: 5px 0 0;
-    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 10px 0 0;
+    font-size: 1.1rem;
+    font-weight: 300;
 }
 
 .app-main {
@@ -151,6 +167,40 @@ body {
     display: flex;
     flex-direction: column;
     gap: 15px;
+}
+
+.prominent-button-container {
+    display: flex;
+    justify-content: center;
+    margin: 5px 0 15px;
+}
+
+.prominent-run-button {
+    background-color: #4285F4;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 10px 24px;
+    border-radius: 30px;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 180px;
+}
+
+.prominent-run-button:hover {
+    background-color: #3367D6;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+.prominent-run-button:active {
+    background-color: #2850A1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transform: translateY(1px);
 }
 
 .control-group {

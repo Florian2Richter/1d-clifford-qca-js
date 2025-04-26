@@ -185,6 +185,12 @@ export function SimulationControls({
         <div className="simulation-controls">
             <h3 style={{ textAlign: 'center' }}>Simulation Parameters</h3>
             
+            <div className="prominent-button-container">
+                <button className="prominent-run-button" onClick={handleRunSimulation}>
+                    Run Simulation
+                </button>
+            </div>
+            
             <div className="control-group">
                 <label>Rule Matrix:</label>
                 <div style={{ marginTop: '10px' }}>
@@ -439,9 +445,6 @@ export function SimulationControls({
             </div>
             
             <div className="button-group">
-                <button className="run-button" onClick={handleRunSimulation}>
-                    Run Simulation
-                </button>
                 <button className="reset-button" onClick={handleResetSimulation}>
                     Reset
                 </button>

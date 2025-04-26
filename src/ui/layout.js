@@ -15,8 +15,13 @@ export function MainLayout({ children }) {
     return (
         <div className="main-layout" style={{ width: '100%', boxSizing: 'border-box' }}>
             <header className="app-header">
-                <h1>1D Clifford QCA Simulator</h1>
-                <p>Interactive simulation of 1-Dimensional Clifford Quantum Cellular Automata</p>
+                <div className="header-content">
+                    <h1>
+                        <span className="header-prefix">Simulation of</span>
+                        <span className="header-highlight"> 1D Clifford Automata</span>
+                    </h1>
+                    <p>Interactive exploration of quantum information propagation in 1D lattices</p>
+                </div>
             </header>
             
             <main className="app-main">
