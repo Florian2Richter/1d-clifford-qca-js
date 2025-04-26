@@ -183,16 +183,17 @@ export function SimulationControls({
     
     return (
         <div className="simulation-controls">
-            <h3 style={{ textAlign: 'center' }}>Simulation Parameters</h3>
-            
             <div className="prominent-button-container">
                 <button className="prominent-run-button" onClick={handleRunSimulation}>
                     Run Simulation
                 </button>
+                <button className="reset-button" onClick={handleResetSimulation} style={{ marginLeft: '10px' }}>
+                    Reset
+                </button>
             </div>
             
             <div className="control-group">
-                <label>Rule Matrix:</label>
+                <h3 style={{ textAlign: 'center', margin: '20px 0 10px' }}>Rule Matrix</h3>
                 <div style={{ marginTop: '10px' }}>
                     <div className="rule-matrix-editor">
                         <div className="matrix-vertical-container">
@@ -442,12 +443,6 @@ export function SimulationControls({
                         </div>
                     ))}
                 </div>
-            </div>
-            
-            <div className="button-group">
-                <button className="reset-button" onClick={handleResetSimulation}>
-                    Reset
-                </button>
             </div>
         </div>
     );

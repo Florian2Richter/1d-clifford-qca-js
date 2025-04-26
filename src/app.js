@@ -220,7 +220,7 @@ export function App() {
                             </p>
                         </Section>
                         
-                        <Section title="Simulation Parameters" collapsible={true}>
+                        <Section title="Simulation" collapsible={true}>
                             <SimulationControls
                                 onRunSimulation={handleRunSimulation}
                                 onResetSimulation={handleResetSimulation}
