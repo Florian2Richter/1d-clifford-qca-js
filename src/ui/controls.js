@@ -189,64 +189,142 @@ export function SimulationControls({
                 <label>Rule Matrix:</label>
                 <div style={{ marginTop: '10px' }}>
                     <div className="rule-matrix-editor">
-                        <div className="matrix-container">
-                            <div className="matrix-labels">
+                        <div className="matrix-vertical-container">
+                            {/* A_left Matrix */}
+                            <div className="matrix-section">
                                 <div className="matrix-label">A_left</div>
-                                <div className="matrix-label">A_center</div>
-                                <div className="matrix-label">A_right</div>
+                                <table className="matrix-table">
+                                    <tbody>
+                                        {[0, 1].map(rowIndex => (
+                                            <tr key={rowIndex}>
+                                                {[0, 1].map(colIndex => {
+                                                    const actualColIndex = colIndex;
+                                                    return (
+                                                        <td key={colIndex} className="left-matrix">
+                                                            <div className="number-picker">
+                                                                <button 
+                                                                    className="number-picker-btn"
+                                                                    onClick={() => {
+                                                                        const newMatrix = [...ruleMatrix];
+                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
+                                                                        handleRuleMatrixChange(newMatrix);
+                                                                    }}
+                                                                >
+                                                                    −
+                                                                </button>
+                                                                <span className="number-picker-value">{ruleMatrix[rowIndex][actualColIndex]}</span>
+                                                                <button 
+                                                                    className="number-picker-btn"
+                                                                    onClick={() => {
+                                                                        const newMatrix = [...ruleMatrix];
+                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
+                                                                        handleRuleMatrixChange(newMatrix);
+                                                                    }}
+                                                                >
+                                                                    +
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                            <table className="matrix-table">
-                                <tbody>
-                                    {ruleMatrix.map((row, rowIndex) => (
-                                        <tr key={rowIndex}>
-                                            {row.map((cell, colIndex) => (
-                                                <td 
-                                                    key={colIndex}
-                                                    className={
-                                                        colIndex < 2 ? 'left-matrix' : 
-                                                        colIndex < 4 ? 'center-matrix' : 'right-matrix'
-                                                    }
-                                                >
-                                                    <div className="number-picker">
-                                                        <button 
-                                                            className="number-picker-btn"
-                                                            onClick={() => {
-                                                                const newMatrix = [...ruleMatrix];
-                                                                newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                // Decrement with modulo 2
-                                                                newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] === 0) ? 1 : 0;
-                                                                handleRuleMatrixChange(newMatrix);
-                                                            }}
-                                                        >
-                                                            −
-                                                        </button>
-                                                        <span className="number-picker-value">{cell}</span>
-                                                        <button 
-                                                            className="number-picker-btn"
-                                                            onClick={() => {
-                                                                const newMatrix = [...ruleMatrix];
-                                                                newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                // Increment with modulo 2
-                                                                newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] + 1) % 2;
-                                                                handleRuleMatrixChange(newMatrix);
-                                                            }}
-                                                        >
-                                                            +
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+
+                            {/* A_center Matrix */}
+                            <div className="matrix-section">
+                                <div className="matrix-label">A_center</div>
+                                <table className="matrix-table">
+                                    <tbody>
+                                        {[0, 1].map(rowIndex => (
+                                            <tr key={rowIndex}>
+                                                {[0, 1].map(colIndex => {
+                                                    const actualColIndex = colIndex + 2;
+                                                    return (
+                                                        <td key={colIndex} className="center-matrix">
+                                                            <div className="number-picker">
+                                                                <button 
+                                                                    className="number-picker-btn"
+                                                                    onClick={() => {
+                                                                        const newMatrix = [...ruleMatrix];
+                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
+                                                                        handleRuleMatrixChange(newMatrix);
+                                                                    }}
+                                                                >
+                                                                    −
+                                                                </button>
+                                                                <span className="number-picker-value">{ruleMatrix[rowIndex][actualColIndex]}</span>
+                                                                <button 
+                                                                    className="number-picker-btn"
+                                                                    onClick={() => {
+                                                                        const newMatrix = [...ruleMatrix];
+                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
+                                                                        handleRuleMatrixChange(newMatrix);
+                                                                    }}
+                                                                >
+                                                                    +
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* A_right Matrix */}
+                            <div className="matrix-section">
+                                <div className="matrix-label">A_right</div>
+                                <table className="matrix-table">
+                                    <tbody>
+                                        {[0, 1].map(rowIndex => (
+                                            <tr key={rowIndex}>
+                                                {[0, 1].map(colIndex => {
+                                                    const actualColIndex = colIndex + 4;
+                                                    return (
+                                                        <td key={colIndex} className="right-matrix">
+                                                            <div className="number-picker">
+                                                                <button 
+                                                                    className="number-picker-btn"
+                                                                    onClick={() => {
+                                                                        const newMatrix = [...ruleMatrix];
+                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
+                                                                        handleRuleMatrixChange(newMatrix);
+                                                                    }}
+                                                                >
+                                                                    −
+                                                                </button>
+                                                                <span className="number-picker-value">{ruleMatrix[rowIndex][actualColIndex]}</span>
+                                                                <button 
+                                                                    className="number-picker-btn"
+                                                                    onClick={() => {
+                                                                        const newMatrix = [...ruleMatrix];
+                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
+                                                                        handleRuleMatrixChange(newMatrix);
+                                                                    }}
+                                                                >
+                                                                    +
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <button 
-                            className="reset-matrix-button" 
-                            onClick={() => handleRuleMatrixChange(DEFAULT_RULE_MATRIX)}
-                        >
-                            Reset to Default
-                        </button>
                     </div>
                 </div>
             </div>
@@ -406,61 +484,142 @@ export function RuleMatrixEditor({ ruleMatrix = DEFAULT_RULE_MATRIX, onRuleMatri
     return (
         <div className="rule-matrix-editor">
             <h3>Rule Matrix (2×6 over F₂)</h3>
-            <div className="matrix-container">
-                <div className="matrix-labels">
+            <div className="matrix-vertical-container">
+                {/* A_left Matrix */}
+                <div className="matrix-section">
                     <div className="matrix-label">A_left</div>
-                    <div className="matrix-label">A_center</div>
-                    <div className="matrix-label">A_right</div>
+                    <table className="matrix-table">
+                        <tbody>
+                            {[0, 1].map(rowIndex => (
+                                <tr key={rowIndex}>
+                                    {[0, 1].map(colIndex => {
+                                        const actualColIndex = colIndex;
+                                        return (
+                                            <td key={colIndex} className="left-matrix">
+                                                <div className="number-picker">
+                                                    <button 
+                                                        className="number-picker-btn"
+                                                        onClick={() => {
+                                                            const newMatrix = [...matrix];
+                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                            newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
+                                                            handleCellChange(rowIndex, actualColIndex, newMatrix[rowIndex][actualColIndex]);
+                                                        }}
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <span className="number-picker-value">{matrix[rowIndex][actualColIndex]}</span>
+                                                    <button 
+                                                        className="number-picker-btn"
+                                                        onClick={() => {
+                                                            const newMatrix = [...matrix];
+                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                            newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
+                                                            handleCellChange(rowIndex, actualColIndex, newMatrix[rowIndex][actualColIndex]);
+                                                        }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-                <table className="matrix-table">
-                    <tbody>
-                        {matrix.map((row, rowIndex) => (
-                            <tr key={rowIndex}>
-                                {row.map((cell, colIndex) => (
-                                    <td 
-                                        key={colIndex}
-                                        className={
-                                            colIndex < 2 ? 'left-matrix' : 
-                                            colIndex < 4 ? 'center-matrix' : 'right-matrix'
-                                        }
-                                    >
-                                        <div className="number-picker">
-                                            <button 
-                                                className="number-picker-btn"
-                                                onClick={() => {
-                                                    const newMatrix = [...matrix];
-                                                    newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                    // Decrement with modulo 2
-                                                    newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] === 0) ? 1 : 0;
-                                                    handleCellChange(rowIndex, colIndex, matrix[rowIndex][colIndex] === 0 ? 1 : 0);
-                                                }}
-                                            >
-                                                −
-                                            </button>
-                                            <span className="number-picker-value">{cell}</span>
-                                            <button 
-                                                className="number-picker-btn"
-                                                onClick={() => {
-                                                    const newMatrix = [...matrix];
-                                                    newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                    // Increment with modulo 2
-                                                    newMatrix[rowIndex][colIndex] = (newMatrix[rowIndex][colIndex] + 1) % 2;
-                                                    handleCellChange(rowIndex, colIndex, (matrix[rowIndex][colIndex] + 1) % 2);
-                                                }}
-                                            >
-                                                +
-                                            </button>
-                                        </div>
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+
+                {/* A_center Matrix */}
+                <div className="matrix-section">
+                    <div className="matrix-label">A_center</div>
+                    <table className="matrix-table">
+                        <tbody>
+                            {[0, 1].map(rowIndex => (
+                                <tr key={rowIndex}>
+                                    {[0, 1].map(colIndex => {
+                                        const actualColIndex = colIndex + 2;
+                                        return (
+                                            <td key={colIndex} className="center-matrix">
+                                                <div className="number-picker">
+                                                    <button 
+                                                        className="number-picker-btn"
+                                                        onClick={() => {
+                                                            const newMatrix = [...matrix];
+                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                            newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
+                                                            handleCellChange(rowIndex, actualColIndex, newMatrix[rowIndex][actualColIndex]);
+                                                        }}
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <span className="number-picker-value">{matrix[rowIndex][actualColIndex]}</span>
+                                                    <button 
+                                                        className="number-picker-btn"
+                                                        onClick={() => {
+                                                            const newMatrix = [...matrix];
+                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                            newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
+                                                            handleCellChange(rowIndex, actualColIndex, newMatrix[rowIndex][actualColIndex]);
+                                                        }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* A_right Matrix */}
+                <div className="matrix-section">
+                    <div className="matrix-label">A_right</div>
+                    <table className="matrix-table">
+                        <tbody>
+                            {[0, 1].map(rowIndex => (
+                                <tr key={rowIndex}>
+                                    {[0, 1].map(colIndex => {
+                                        const actualColIndex = colIndex + 4;
+                                        return (
+                                            <td key={colIndex} className="right-matrix">
+                                                <div className="number-picker">
+                                                    <button 
+                                                        className="number-picker-btn"
+                                                        onClick={() => {
+                                                            const newMatrix = [...matrix];
+                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                            newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
+                                                            handleCellChange(rowIndex, actualColIndex, newMatrix[rowIndex][actualColIndex]);
+                                                        }}
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <span className="number-picker-value">{matrix[rowIndex][actualColIndex]}</span>
+                                                    <button 
+                                                        className="number-picker-btn"
+                                                        onClick={() => {
+                                                            const newMatrix = [...matrix];
+                                                            newMatrix[rowIndex] = [...newMatrix[rowIndex]];
+                                                            newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
+                                                            handleCellChange(rowIndex, actualColIndex, newMatrix[rowIndex][actualColIndex]);
+                                                        }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <button className="reset-matrix-button" onClick={handleReset}>
-                Reset to Default
-            </button>
         </div>
     );
 } 

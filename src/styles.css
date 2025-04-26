@@ -249,6 +249,33 @@ button:active {
     overflow-x: auto;
 }
 
+/* Vertical matrix container */
+.matrix-vertical-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.matrix-section {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.matrix-section .matrix-label {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 0;
+    color: var(--text-color-primary);
+    width: 80px;
+    text-align: right;
+}
+
 /* Number picker styles */
 .number-picker {
     display: flex;
@@ -310,6 +337,30 @@ button:active {
     font-weight: 500;
     font-size: 0.85rem;
     color: var(--text-color-secondary);
+    width: 100%;
+}
+
+.matrix-label-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 33.33%;
+}
+
+.matrix-label {
+    text-align: center;
+    margin-bottom: 2px;
+}
+
+.matrix-label-cells {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+}
+
+.matrix-label-cell {
+    width: 32px;
+    visibility: hidden;
 }
 
 .matrix-table {
