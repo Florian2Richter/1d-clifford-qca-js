@@ -11,6 +11,18 @@ import { mat2, vec2 } from 'gl-matrix';
  * Preset configurations for the simulation
  */
 export const PRESETS = {
+    "Fractal": {
+        description: "A pattern that creates self-similar fractal structures",
+        ruleMatrix: [
+            [1, 0, 1, 1, 1, 0], // [Left 1,0,0,0 | Center 1,1,1,0 | Right 1,0,0,0]
+            [0, 0, 1, 0, 0, 0]
+        ],
+        initialState: {
+            operators: [
+                { type: 'X', position: 250 }
+            ]
+        }
+    },
     "Periodic": {
         description: "Custom configuration (current settings)",
         ruleMatrix: [
@@ -36,11 +48,11 @@ export const PRESETS = {
             ]
         }
     },
-    "Fractal": {
-        description: "A pattern that creates self-similar fractal structures",
+    "Wolfram 150 Rule": {
+        description: "Implementation of Wolfram Rule 150 in Clifford QCA",
         ruleMatrix: [
-            [1, 0, 1, 1, 1, 0], // [Left 1,0,0,0 | Center 1,1,1,0 | Right 1,0,0,0]
-            [0, 0, 1, 0, 0, 0]
+            [1, 0, 1, 0, 1, 0], // A_left=[1,0], A_center=[1,0], A_right=[1,0]
+            [0, 0, 0, 1, 0, 1]  // A_left=[0,0], A_center=[0,1], A_right=[0,1]
         ],
         initialState: {
             operators: [
@@ -54,7 +66,7 @@ export const PRESETS = {
  * Default rule matrix for the simulation (2x6 over F2)
  * Format: [A_left | A_center | A_right]
  */
-export const DEFAULT_RULE_MATRIX = PRESETS.Periodic.ruleMatrix;
+export const DEFAULT_RULE_MATRIX = PRESETS.Fractal.ruleMatrix;
 
 /**
  * CliffordQCA class for simulating 1D Clifford Quantum Cellular Automata
