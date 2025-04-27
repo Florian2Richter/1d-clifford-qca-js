@@ -55,6 +55,9 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
   const width = latticeSize * cellSize;
   const totalRequiredHeight = Math.max(history.length * cellSize, containerHeight);
 
+  // Calculate the horizontal offset to center the visualization
+  const startX = Math.floor((containerWidth - width) / 2);
+
   // First‐time initialization
   const isNewCanvas = !canvasElement || !canvasContext || container.select('canvas').empty();
   if (isNewCanvas) {
@@ -63,7 +66,7 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
 
     // Limit canvas dimensions for very large states to prevent browser limitations
     // Most browsers have a max canvas size limit (~32k pixels)
-    const safeWidth = Math.min(width, 32000);
+    const safeWidth = Math.min(containerWidth, 32000);
     
     const wrapper = container.append('div')
       .style('position', 'absolute')
@@ -82,7 +85,7 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
       .node();
 
     canvasContext = canvasElement.getContext('2d');
-    drawGrid(latticeSize, totalRequiredHeight, safeWidth);
+    drawGrid(latticeSize, totalRequiredHeight, safeWidth, startX);
     container.style('min-height', `${containerHeight}px`);
     setTimeout(() => { container.node().scrollTop = 0; }, 0);
   }
@@ -100,29 +103,32 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
 
     canvasElement.height = totalRequiredHeight;
     canvasContext.clearRect(0, 0, canvasElement.width, totalRequiredHeight);
-    drawGrid(latticeSize, totalRequiredHeight, canvasElement.width);
+    drawGrid(latticeSize, totalRequiredHeight, canvasElement.width, startX);
     canvasContext.drawImage(tempCanvas, 0, 0);
     container.node().scrollTop = scrollPosition;
   }
 
-  drawTimeSteps(history, currentTimeStep, latticeSize);
+  drawTimeSteps(history, currentTimeStep, latticeSize, startX);
   currentTimeStep = history.length;
 
+  // Store the startX value to use for current state visualization
+  window.currentVisualizationStartX = startX;
+  
   // Return the cell size for other visualizations to use
   return cellSize;
 
-  function drawGrid(latticeSize, height, width) {
+  function drawGrid(latticeSize, height, width, startX) {
     // Only draw grid lines if lattice size is less than 250
     if (latticeSize < 250) {
       canvasContext.strokeStyle = '#eee';
       canvasContext.lineWidth   = 0.5;
       for (let x = 0; x <= latticeSize; x++) {
         // Ensure grid lines stay within canvas bounds
-        if (x * cellSize > width) break;
+        if ((startX + x * cellSize) > width) break;
         
         canvasContext.beginPath();
-        canvasContext.moveTo(x * cellSize, 0);
-        canvasContext.lineTo(x * cellSize, height);
+        canvasContext.moveTo(startX + x * cellSize, 0);
+        canvasContext.lineTo(startX + x * cellSize, height);
         canvasContext.stroke();
       }
       for (let t = 0; t <= Math.ceil(height / cellSize); t++) {
@@ -134,7 +140,7 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
     }
   }
 
-  function drawTimeSteps(history, startTime, latticeSize) {
+  function drawTimeSteps(history, startTime, latticeSize, startX) {
     // Store whether grid lines should be drawn
     const drawGridLines = latticeSize < 250;
     const canvasWidth = canvasElement.width;
@@ -142,7 +148,7 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
     for (let t = startTime; t < history.length; t++) {
       for (let x = 0; x < latticeSize; x++) {
         // Skip cells that are beyond the canvas width
-        if (x * cellSize >= canvasWidth) continue;
+        if ((startX + x * cellSize) >= canvasWidth) continue;
         
         const pauli = history[t][x];
         const label = getPauliLabel(pauli);
@@ -150,14 +156,14 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
 
         canvasContext.fillStyle   = color;
         canvasContext.globalAlpha = (label === 'I' ? 0.3 : 0.9);
-        canvasContext.fillRect(x * cellSize, t * cellSize, cellSize, cellSize);
+        canvasContext.fillRect(startX + x * cellSize, t * cellSize, cellSize, cellSize);
 
         // Only draw cell borders if lattice size is less than 250
         if (drawGridLines) {
           canvasContext.globalAlpha = 1;
           canvasContext.strokeStyle = '#ddd';
           canvasContext.lineWidth   = 0.5;
-          canvasContext.strokeRect(x * cellSize, t * cellSize, cellSize, cellSize);
+          canvasContext.strokeRect(startX + x * cellSize, t * cellSize, cellSize, cellSize);
         }
       }
     }
@@ -209,8 +215,12 @@ export function renderCurrentState(elId, state, sizeParam = null) {
     // Store whether grid lines should be drawn
     const drawGridLines = n < 250;
     
-    // Draw cells, centered in the available width
-    const startX = Math.floor((width - (n * s)) / 2);
+    // Use the same startX value as the spacetime diagram for perfect alignment
+    // If not available, calculate it the same way
+    const startX = window.currentVisualizationStartX !== undefined 
+        ? window.currentVisualizationStartX 
+        : Math.floor((width - (n * s)) / 2);
+    
     const startY = Math.floor((height - s) / 2); // Center vertically
     
     // Draw cells
