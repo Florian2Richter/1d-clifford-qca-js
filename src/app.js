@@ -99,37 +99,37 @@ export function App() {
                 
                 // Set the state
                 newQca.setState(newState);
-            } else {
-                // Set initial state based on type
-                if (initialStateType === 'single-x') {
-                    newQca.setSingleX(initialPosition);
-                } else if (initialStateType === 'random') {
-                    newQca.setRandomState();
-                } else if (initialStateType === 'custom') {
-                    try {
+        } else {
+            // Set initial state based on type
+            if (initialStateType === 'single-x') {
+                newQca.setSingleX(initialPosition);
+            } else if (initialStateType === 'random') {
+                newQca.setRandomState();
+            } else if (initialStateType === 'custom') {
+                try {
                         if (customPauliString === 'OPERATORS') {
                             // Extract operators from the UI
                             const operators = simulationParams.operators || [];
                             newQca.setMultipleOperators(operators);
                         } else {
-                            // Validate and pad/truncate custom string as needed
-                            let pauliArray;
-                            if (customPauliString.length === latticeSize) {
-                                pauliArray = pauliStringToF2(customPauliString);
-                            } else if (customPauliString.length < latticeSize) {
-                                // Pad with 'I' if too short
-                                const paddedString = customPauliString.padEnd(latticeSize, 'I');
-                                pauliArray = pauliStringToF2(paddedString);
-                            } else {
-                                // Truncate if too long
-                                const truncatedString = customPauliString.substring(0, latticeSize);
-                                pauliArray = pauliStringToF2(truncatedString);
-                            }
-                            newQca.setState(pauliArray);
+                    // Validate and pad/truncate custom string as needed
+                    let pauliArray;
+                    if (customPauliString.length === latticeSize) {
+                        pauliArray = pauliStringToF2(customPauliString);
+                    } else if (customPauliString.length < latticeSize) {
+                        // Pad with 'I' if too short
+                        const paddedString = customPauliString.padEnd(latticeSize, 'I');
+                        pauliArray = pauliStringToF2(paddedString);
+                    } else {
+                        // Truncate if too long
+                        const truncatedString = customPauliString.substring(0, latticeSize);
+                        pauliArray = pauliStringToF2(truncatedString);
+                    }
+                    newQca.setState(pauliArray);
                         }
-                    } catch (error) {
-                        console.error('Invalid Pauli string:', error);
-                        newQca.reset(); // Reset to all identity if invalid
+                } catch (error) {
+                    console.error('Invalid Pauli string:', error);
+                    newQca.reset(); // Reset to all identity if invalid
                     }
                 }
             }
@@ -268,37 +268,46 @@ export function App() {
                     </>
                 }
                 centerColumn={
-                    <>
-                        <Section title="Current State">
+                    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <Section title="Current State" style={{ marginBottom: '10px' }}>
+                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
                             <canvas 
                                 id="current-state" 
                                 ref={currentStateRef}
                                 className="visualization-container"
                                 style={{ 
-                                    minHeight: '40px',
-                                    height: '40px',
+                                        minHeight: '40px',
+                                        height: '40px',
                                     display: 'block',
                                     padding: 0,
-                                    margin: 0
+                                        margin: 0,
+                                        width: '100%'
                                 }}
                             ></canvas>
+                            </div>
                         </Section>
                         
                         <Section title="Spacetime Diagram" 
                             style={{ 
                                 flex: 1,
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flexDirection: 'column',
+                                height: 'calc(100% - 100px)'
                             }}
                         >
                             <div 
                                 id="spacetime-diagram" 
                                 ref={spacetimeDiagramRef}
                                 className="visualization-container"
-                                style={{ flex: 1 }}
+                                style={{ 
+                                    flex: 1,
+                                    width: '100%',
+                                    display: 'flex',
+                                    justifyContent: 'center'
+                                }}
                             ></div>
                         </Section>
-                    </>
+                    </div>
                 }
                 rightColumn={
                     <>

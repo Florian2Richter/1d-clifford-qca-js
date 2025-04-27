@@ -24,7 +24,7 @@ export function SimulationControls({
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
-    const [selectedPreset, setSelectedPreset] = useState('Periodic');
+    const [selectedPreset, setSelectedPreset] = useState('Fractal');
     // Track whether we just selected a new preset
     const [isNewPresetSelection, setIsNewPresetSelection] = useState(false);
     
@@ -396,22 +396,22 @@ export function SimulationControls({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                     <label style={{ margin: 0 }}>Non-identity Operators: {operators.length}</label>
                     <div style={{ display: 'flex' }}>
-                        <button 
-                            type="button" 
-                            onClick={addOperator}
-                            disabled={operators.length >= latticeSize}
+                    <button 
+                        type="button" 
+                        onClick={addOperator}
+                        disabled={operators.length >= latticeSize}
                             style={{ marginRight: '5px', padding: '2px 8px' }}
-                        >
-                            +
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
-                            disabled={operators.length <= 1}
+                    >
+                        +
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
+                        disabled={operators.length <= 1}
                             style={{ padding: '2px 8px' }}
-                        >
-                            -
-                        </button>
+                    >
+                        -
+                    </button>
                     </div>
                 </div>
                 
