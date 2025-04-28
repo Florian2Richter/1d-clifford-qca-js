@@ -188,13 +188,14 @@ export function TwoColumnLayout({ leftColumn, rightColumn }) {
  * @param {React.ReactNode} props.rightColumn - Content for right column
  */
 export function ThreeColumnLayout({ leftColumn, centerColumn, rightColumn }) {
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+    const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
     
     return (
         <div className="three-column-layout" style={{ 
             width: '100%',
             display: 'grid',
-            gridTemplateColumns: sidebarCollapsed ? '60px 1fr 350px' : '300px 1fr 350px',
+            gridTemplateColumns: `${leftSidebarCollapsed ? '60px' : '300px'} 1fr ${rightSidebarCollapsed ? '60px' : '350px'}`,
             gap: '10px'
         }}>
             <div className="left-column" style={{ 
@@ -218,12 +219,12 @@ export function ThreeColumnLayout({ leftColumn, centerColumn, rightColumn }) {
                         zIndex: 100,
                         transition: 'transform 0.3s'
                     }}
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
                 >
                     <span 
                         style={{ 
                             transition: 'transform 0.3s',
-                            transform: sidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transform: leftSidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
                             fontSize: '1rem'
                         }}
                     >
@@ -232,14 +233,14 @@ export function ThreeColumnLayout({ leftColumn, centerColumn, rightColumn }) {
                 </div>
                 
                 <div style={{ 
-                    display: sidebarCollapsed ? 'none' : 'block',
-                    opacity: sidebarCollapsed ? 0 : 1,
+                    display: leftSidebarCollapsed ? 'none' : 'block',
+                    opacity: leftSidebarCollapsed ? 0 : 1,
                     transition: 'opacity 0.3s'
                 }}>
                     {leftColumn}
                 </div>
                 
-                {sidebarCollapsed && (
+                {leftSidebarCollapsed && (
                     <div style={{ 
                         writingMode: 'vertical-rl',
                         textOrientation: 'mixed',
@@ -259,8 +260,62 @@ export function ThreeColumnLayout({ leftColumn, centerColumn, rightColumn }) {
                 {centerColumn}
             </div>
             
-            <div className="right-column">
-                {rightColumn}
+            <div className="right-column" style={{ 
+                transition: 'width 0.3s',
+                position: 'relative'
+            }}>
+                <div 
+                    style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '-15px',
+                        width: '30px',
+                        height: '30px',
+                        background: 'white',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+                        zIndex: 100,
+                        transition: 'transform 0.3s'
+                    }}
+                    onClick={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
+                >
+                    <span 
+                        style={{ 
+                            transition: 'transform 0.3s',
+                            transform: rightSidebarCollapsed ? 'rotate(0deg)' : 'rotate(180deg)',
+                            fontSize: '1rem'
+                        }}
+                    >
+                        ◀
+                    </span>
+                </div>
+                
+                <div style={{ 
+                    display: rightSidebarCollapsed ? 'none' : 'block',
+                    opacity: rightSidebarCollapsed ? 0 : 1,
+                    transition: 'opacity 0.3s'
+                }}>
+                    {rightColumn}
+                </div>
+                
+                {rightSidebarCollapsed && (
+                    <div style={{ 
+                        writingMode: 'vertical-rl',
+                        textOrientation: 'mixed',
+                        height: '100%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        fontSize: '1.2rem',
+                        color: 'var(--text-color-secondary)',
+                        padding: '20px 0'
+                    }}>
+                        About
+                    </div>
+                )}
             </div>
         </div>
     );

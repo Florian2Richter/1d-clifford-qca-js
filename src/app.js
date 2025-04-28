@@ -258,7 +258,7 @@ export function App() {
                             />
                         </Section>
                         
-                        <Section title="Performance" collapsible={true}>
+                        <Section title="Performance" collapsible={true} defaultExpanded={false}>
                             <div className="info-panel">
                                 <p><strong>Computation Time:</strong> {stepTime > 0 ? `${stepTime.toFixed(3)} ms` : '< 0.001 ms'}</p>
                                 <p><strong>Rendering Time:</strong> {renderTime > 0 ? `${renderTime.toFixed(3)} ms` : '< 0.001 ms'}</p>
@@ -311,17 +311,19 @@ export function App() {
                 }
                 rightColumn={
                     <>
-                        <Section title="About" collapsible={true} defaultExpanded={true} style={{ height: '100%' }}>
-                            <p>
-                                This simulator demonstrates a 1D Clifford Quantum Cellular Automaton,
-                                where each cell is represented by a Pauli operator (I, X, Z, Y)
-                                and evolves according to a local update rule.
-                            </p>
-                            <p>
-                                Clifford QCAs are important models for studying quantum information
-                                propagation and have applications in quantum error correction and 
-                                quantum simulation.
-                            </p>
+                        <Section title="About" collapsible={true} defaultExpanded={false} style={{ height: 'auto', marginBottom: '10px' }}>
+                            <div className="info-panel">
+                                <p>
+                                    This simulator demonstrates a 1D Clifford Quantum Cellular Automaton,
+                                    where each cell is represented by a Pauli operator (I, X, Z, Y)
+                                    and evolves according to a local update rule.
+                                </p>
+                                <p>
+                                    Clifford QCAs are important models for studying quantum information
+                                    propagation and have applications in quantum error correction and 
+                                    quantum simulation.
+                                </p>
+                            </div>
                         </Section>
                     </>
                 }
