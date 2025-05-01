@@ -1,219 +1,86 @@
 /**
  * Main application component for 1D Clifford QCA Simulator
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import { CliffordQCA, PRESETS } from './simulation/automaton.js';
 import { pauliStringToF2 } from './simulation/clifford.js';
 import { SimulationControls } from './ui/controls.js';
 import { MainLayout, Section, ThreeColumnLayout } from './ui/layout.js';
 import { renderSpacetimeDiagram, renderCurrentState } from './visualization/spacetime.js';
 
+// Import custom hooks
+import { useSimulationState } from './hooks/useSimulationState.js';
+import { useQCAInitialization } from './hooks/useQCAInitialization.js';
+import { useSimulationSetup } from './hooks/useSimulationSetup.js';
+import { useSimulationAnimation } from './hooks/useSimulationAnimation.js';
+import { useVisualization } from './hooks/useVisualization.js';
+import { usePerformanceMetrics } from './hooks/usePerformanceMetrics.js';
+
 export function App() {
-    const [qca, setQca] = useState(new CliffordQCA());
-    const [ruleMatrix, setRuleMatrix] = useState(qca.ruleMatrix);
-    const [history, setHistory] = useState([]);
-    const [simulationParams, setSimulationParams] = useState(null);
-    const [currentStep, setCurrentStep] = useState(0);
-    const [isRunning, setIsRunning] = useState(false);
-    const [stepTime, setStepTime] = useState(0);
-    const [renderTime, setRenderTime] = useState(0);
-    
-    const currentStateRef = useRef(null);
-    const spacetimeDiagramRef = useRef(null);
-    const timeoutRef = useRef(null);
-    const renderTimeRef = useRef(0); // Store render time without triggering re-renders
-    
+    const {
+        qca, setQca,
+        ruleMatrix, setRuleMatrix,
+        history, setHistory,
+        simulationParams, setSimulationParams,
+        currentStep, setCurrentStep,
+        isRunning, setIsRunning,
+        stepTime, setStepTime,
+        renderTime, setRenderTime,
+        currentStateRef,
+        spacetimeDiagramRef,
+        timeoutRef,
+        renderTimeRef
+    } = useSimulationState();
+
     // Initialize QCA when rule matrix changes
-    useEffect(() => {
-        const newQca = new CliffordQCA(
-            simulationParams?.latticeSize || 20,
-            ruleMatrix
-        );
-        setQca(newQca);
-    }, [ruleMatrix]);
+    useQCAInitialization({ 
+        ruleMatrix, 
+        simulationParams, 
+        setQca 
+    });
     
     // Set up simulation when parameters change
-    useEffect(() => {
-        if (!simulationParams) return;
-        
-        // Cancel any ongoing animation
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-        }
-        
-        // Reset visualization by clearing the container
-        if (spacetimeDiagramRef.current) {
-            spacetimeDiagramRef.current.innerHTML = '';
-        }
-        
-        const { 
-            latticeSize, 
-            timeSteps, 
-            initialStateType, 
-            initialPosition, 
-            customPauliString,
-            selectedPreset,
-            isNewPresetSelection
-        } = simulationParams;
-        
-        // Create new QCA with updated size
-        const newQca = new CliffordQCA(latticeSize, ruleMatrix);
-        
-        // If a preset is selected, apply it
-        if (selectedPreset) {
-            // Handle the case where "Custom" might still be in state but was renamed to "Periodic"
-            const presetName = selectedPreset === 'Custom' ? 'Periodic' : selectedPreset;
-            
-            // Use the rule matrix provided by the UI (allows user modifications to persist)
-            // Only set the rule matrix from the preset if we're changing presets
-            if (isNewPresetSelection) {
-                newQca.setRuleMatrix(PRESETS[presetName].ruleMatrix);
-            } else {
-                // Use the user-modified rule matrix from the UI
-                newQca.setRuleMatrix(ruleMatrix);
-            }
-            
-            // Only apply the preset's initial state if not using a custom state
-            if (presetName !== 'Periodic' && initialStateType !== 'custom') {
-                // For non-Periodic presets, apply the preset's initial state
-                const preset = PRESETS[presetName];
-                const centerOffset = Math.floor(latticeSize / 2) - 250;
-                
-                // Initialize with identity operators
-                const newState = Array(latticeSize).fill().map(() => [...PAULI.I]);
-                
-                // Place the operators according to the preset
-                preset.initialState.operators.forEach(op => {
-                    const adjustedPosition = op.position + centerOffset;
-                    const position = (adjustedPosition + latticeSize) % latticeSize;
-                    
-                    if (op.type === 'X') {
-                        newState[position] = [...PAULI.X];
-                    } else if (op.type === 'Y') {
-                        newState[position] = [...PAULI.Y];
-                    } else if (op.type === 'Z') {
-                        newState[position] = [...PAULI.Z];
-                    }
-                });
-                
-                // Set the state
-                newQca.setState(newState);
-        } else {
-            // Set initial state based on type
-            if (initialStateType === 'single-x') {
-                newQca.setSingleX(initialPosition);
-            } else if (initialStateType === 'random') {
-                newQca.setRandomState();
-            } else if (initialStateType === 'custom') {
-                try {
-                        if (customPauliString === 'OPERATORS') {
-                            // Extract operators from the UI
-                            const operators = simulationParams.operators || [];
-                            newQca.setMultipleOperators(operators);
-                        } else {
-                    // Validate and pad/truncate custom string as needed
-                    let pauliArray;
-                    if (customPauliString.length === latticeSize) {
-                        pauliArray = pauliStringToF2(customPauliString);
-                    } else if (customPauliString.length < latticeSize) {
-                        // Pad with 'I' if too short
-                        const paddedString = customPauliString.padEnd(latticeSize, 'I');
-                        pauliArray = pauliStringToF2(paddedString);
-                    } else {
-                        // Truncate if too long
-                        const truncatedString = customPauliString.substring(0, latticeSize);
-                        pauliArray = pauliStringToF2(truncatedString);
-                    }
-                    newQca.setState(pauliArray);
-                        }
-                } catch (error) {
-                    console.error('Invalid Pauli string:', error);
-                    newQca.reset(); // Reset to all identity if invalid
-                    }
-                }
-            }
-        }
-        
-        // Initialize with just the first state
-        setQca(newQca);
-        setHistory([newQca.getState()]);
-        setCurrentStep(0);
-        setStepTime(0);
-        setRenderTime(0);
-        renderTimeRef.current = 0;
-        setIsRunning(true); // Automatically start the incremental animation
-        
-    }, [simulationParams, ruleMatrix]);
+    useSimulationSetup({
+        simulationParams,
+        ruleMatrix,
+        setQca,
+        setHistory,
+        setCurrentStep,
+        setStepTime,
+        setRenderTime,
+        setIsRunning,
+        timeoutRef,
+        spacetimeDiagramRef,
+        renderTimeRef
+    });
     
-    // Update the UI with performance metrics periodically without triggering re-renders
-    useEffect(() => {
-        if (!isRunning) return;
-        
-        const metricsInterval = setInterval(() => {
-            setRenderTime(renderTimeRef.current);
-        }, 500); // Update metrics every 500ms
-        
-        return () => clearInterval(metricsInterval);
-    }, [isRunning]);
+    // Metrics update hook
+    usePerformanceMetrics({
+        isRunning,
+        renderTimeRef,
+        setRenderTime
+    });
     
     // Incremental animation effect
-    useEffect(() => {
-        if (!isRunning || !simulationParams) return;
-        
-        // If we've reached the target number of steps, stop
-        if (currentStep >= simulationParams.timeSteps) {
-            setIsRunning(false);
-            return;
-        }
-        
-        // Schedule the next step with increased delay (50ms instead of 10ms)
-        timeoutRef.current = setTimeout(() => {
-            // Measure time for the step
-            const startTime = performance.now();
-            
-            // Take one step in the simulation
-            const newState = qca.step();
-            
-            // Calculate time taken
-            const endTime = performance.now();
-            const timeTaken = endTime - startTime;
-            
-            // Store the raw millisecond value without formatting
-            setStepTime(timeTaken);
-            
-            // Update history with the new state (using functional update to avoid dependency)
-            setHistory(prevHistory => [...prevHistory, newState]);
-            setCurrentStep(prevStep => prevStep + 1);
-            
-        }, 10); // Changed back to 10ms since rendering is now around 5ms
-        
-        // Cleanup on unmount or when running state changes
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-                timeoutRef.current = null;
-            }
-        };
-    }, [isRunning, currentStep, qca, simulationParams]);
+    useSimulationAnimation({
+        isRunning,
+        currentStep,
+        qca,
+        simulationParams,
+        setHistory,
+        setCurrentStep,
+        setStepTime,
+        timeoutRef,
+        setIsRunning
+    });
     
     // Render visualization when history changes
-    useEffect(() => {
-        if (history.length > 0 && currentStateRef.current && spacetimeDiagramRef.current) {
-            // Measure rendering time
-            const renderStartTime = performance.now();
-            
-            // Render spacetime diagram first to calculate the cell size
-            const usedCellSize = renderSpacetimeDiagram('spacetime-diagram', history);
-            
-            // Render current state using the same cell size
-            renderCurrentState('current-state', history[history.length - 1], usedCellSize);
-            
-            // Calculate rendering time and store in ref (avoiding re-render)
-            const renderEndTime = performance.now();
-            renderTimeRef.current = renderEndTime - renderStartTime;
-        }
-    }, [history]);
+    useVisualization({
+        history,
+        currentStateRef,
+        spacetimeDiagramRef,
+        renderTimeRef
+    });
     
     const handleRunSimulation = (params) => {
         // If params includes a ruleMatrix, update our state
