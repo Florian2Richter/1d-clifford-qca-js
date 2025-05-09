@@ -361,4 +361,35 @@ export class CliffordQCA {
         this.state = Array(this.size).fill().map(() => [...PAULI.I]);
         this.history = [this.state.map(pauli => [...pauli])];
     }
+    
+    /**
+     * Generates the full stabilizer tableau from the current state
+     * The tableau is an n×2n binary matrix where each row represents
+     * a cyclically shifted version of the current state
+     * 
+     * @returns {Array} - The stabilizer tableau as an n×2n binary matrix
+     */
+    generateStabilizerTableau() {
+        const n = this.size;
+        const tableau = Array(n).fill().map(() => Array(2 * n).fill(0));
+        
+        // For each row of the tableau (corresponding to each cyclic shift)
+        for (let shift = 0; shift < n; shift++) {
+            // Fill the x-part (first n columns)
+            for (let i = 0; i < n; i++) {
+                // Calculate the source index with cyclic shift
+                const sourceIdx = (i + shift) % n;
+                tableau[shift][i] = this.state[sourceIdx][0]; // x value
+            }
+            
+            // Fill the z-part (last n columns)
+            for (let i = 0; i < n; i++) {
+                // Calculate the source index with cyclic shift
+                const sourceIdx = (i + shift) % n;
+                tableau[shift][i + n] = this.state[sourceIdx][1]; // z value
+            }
+        }
+        
+        return tableau;
+    }
 } 
