@@ -14,6 +14,7 @@ import { DEFAULT_RULE_MATRIX, PRESETS } from '../simulation/automaton.js';
  * @param {Function} props.onRunSimulation - Callback when simulation is run
  * @param {Function} props.onStopSimulation - Callback when simulation is stopped
  * @param {Function} props.onResetSimulation - Callback when simulation is reset
+ * @param {Function} props.onAnalysisUpdate - Callback when analysis is updated
  * @param {boolean} props.isRunning - Indicates whether the simulation is running
  * @param {boolean} props.isDisabled - Indicates whether controls should be disabled
  * @param {number} props.defaultSize - Default lattice size
@@ -22,7 +23,8 @@ import { DEFAULT_RULE_MATRIX, PRESETS } from '../simulation/automaton.js';
 export function SimulationControls({ 
     onRunSimulation, 
     onStopSimulation,
-    onResetSimulation, 
+    onResetSimulation,
+    onAnalysisUpdate,
     isRunning,
     isDisabled,
     defaultSize = 500, 
@@ -34,32 +36,51 @@ export function SimulationControls({
     // Track whether we just selected a new preset
     const [isNewPresetSelection, setIsNewPresetSelection] = useState(false);
     
+    // Get the default preset
+    const defaultPreset = PRESETS['Fractal'];
+    
     // Make a deep copy of the default rule matrix to ensure it's correctly initialized
     const [ruleMatrix, setRuleMatrix] = useState(
-        DEFAULT_RULE_MATRIX.map(row => [...row])
+        defaultPreset.ruleMatrix.map(row => [...row])
     );
     
     // For multiple operators
-    const [operators, setOperators] = useState([
-        { type: 'X', position: 250 }
-    ]);
+    const [operators, setOperators] = useState(
+        defaultPreset.initialState.operators.map(op => ({...op}))
+    );
     
-    // Update operators when preset changes
-    useEffect(() => {
-        if (selectedPreset && PRESETS[selectedPreset]) {
-            const preset = PRESETS[selectedPreset];
+    // Handle preset changes directly instead of in useEffect to avoid infinite loops
+    const handlePresetChange = (presetName) => {
+        if (presetName && PRESETS[presetName]) {
+            const preset = PRESETS[presetName];
+            
+            // Update internal state
+            setSelectedPreset(presetName);
             
             // Update operators based on preset
             const newOperators = [...preset.initialState.operators];
             setOperators(newOperators);
             
             // Update rule matrix based on preset
-            setRuleMatrix(preset.ruleMatrix.map(row => [...row]));
+            const newRuleMatrix = preset.ruleMatrix.map(row => [...row]);
+            setRuleMatrix(newRuleMatrix);
             
             // Mark that we've just selected a new preset (will be reset after next run)
             setIsNewPresetSelection(true);
+            
+            // Call onAnalysisUpdate to update the analysis panel
+            if (onAnalysisUpdate) {
+                // Use setTimeout to break potential circular dependencies
+                setTimeout(() => {
+                    onAnalysisUpdate({
+                        ruleMatrix: newRuleMatrix,
+                        operators: newOperators,
+                        latticeSize
+                    });
+                }, 0);
+            }
         }
-    }, [selectedPreset]);
+    };
     
     // Find next available position
     const findNextPosition = () => {
@@ -91,13 +112,38 @@ export function SimulationControls({
         if (operators.length >= latticeSize) return; // Can't add more operators than lattice size
         
         const nextPosition = findNextPosition();
-        setOperators([...operators, { type: 'X', position: nextPosition }]);
+        const newOperators = [...operators, { type: 'X', position: nextPosition }];
+        setOperators(newOperators);
+        
+        // Call onAnalysisUpdate to update the analysis panel
+        if (onAnalysisUpdate) {
+            // Use setTimeout to break potential cyclic dependencies
+            setTimeout(() => {
+                onAnalysisUpdate({
+                    ruleMatrix,
+                    operators: newOperators,
+                    latticeSize
+                });
+            }, 0);
+        }
     };
     
     const removeOperator = (index) => {
         const newOperators = [...operators];
         newOperators.splice(index, 1);
         setOperators(newOperators);
+        
+        // Call onAnalysisUpdate to update the analysis panel
+        if (onAnalysisUpdate) {
+            // Use setTimeout to break potential cyclic dependencies
+            setTimeout(() => {
+                onAnalysisUpdate({
+                    ruleMatrix,
+                    operators: newOperators,
+                    latticeSize
+                });
+            }, 0);
+        }
     };
     
     const updateOperator = (index, field, value) => {
@@ -120,11 +166,18 @@ export function SimulationControls({
         }
         
         setOperators(newOperators);
-    };
-    
-    const handlePresetChange = (preset) => {
-        setSelectedPreset(preset);
-        // This will trigger the useEffect above
+        
+        // Call onAnalysisUpdate to update the analysis panel
+        if (onAnalysisUpdate) {
+            // Use setTimeout to break potential cyclic dependencies
+            setTimeout(() => {
+                onAnalysisUpdate({
+                    ruleMatrix,
+                    operators: newOperators,
+                    latticeSize
+                });
+            }, 0);
+        }
     };
     
     const handleRunSimulation = () => {
@@ -185,6 +238,18 @@ export function SimulationControls({
             });
             
             setOperators(newOperators);
+            
+            // Call onAnalysisUpdate to update the analysis panel
+            if (onAnalysisUpdate) {
+                // Use setTimeout to break potential cyclic dependencies
+                setTimeout(() => {
+                    onAnalysisUpdate({
+                        ruleMatrix,
+                        operators: newOperators,
+                        latticeSize: parsedValue
+                    });
+                }, 0);
+            }
         } else {
             setLatticeSize('');
         }
@@ -203,6 +268,18 @@ export function SimulationControls({
     const handleRuleMatrixChange = (newMatrix) => {
         setRuleMatrix(newMatrix.map(row => [...row]));
         // Do not automatically switch presets when rule matrix changes
+        
+        // Call onAnalysisUpdate to update the analysis panel
+        if (onAnalysisUpdate) {
+            // Use setTimeout to break potential cyclic dependencies
+            setTimeout(() => {
+                onAnalysisUpdate({
+                    ruleMatrix: newMatrix,
+                    operators,
+                    latticeSize
+                });
+            }, 0);
+        }
     };
     
     // For UI, controls should be disabled if either simulation is running OR isDisabled is true

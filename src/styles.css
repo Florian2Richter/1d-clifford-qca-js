@@ -487,6 +487,63 @@ button:active {
     transition: box-shadow var(--transition-speed);
 }
 
+/* Mathematical Analysis styles */
+.mathematical-analysis {
+    margin-top: 15px;
+}
+
+.property-display {
+    margin-bottom: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.property-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.property-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.property-status {
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.property-status.valid {
+    color: white;
+    background-color: #0F9D58; /* Green */
+}
+
+.property-status.invalid {
+    color: white;
+    background-color: #DB4437; /* Red */
+}
+
+.property-details {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    padding: 8px;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
 .visualization-container:hover {
     box-shadow: var(--shadow-medium);
 }
@@ -497,8 +554,6 @@ button:active {
     height: calc(100vh - 500px);
     max-height: 85vh;
     display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 /* Fix for matrix number inputs */

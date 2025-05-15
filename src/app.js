@@ -2,11 +2,12 @@
  * Main application component for 1D Clifford QCA Simulator
  */
 import React from 'react';
-import { CliffordQCA, PRESETS } from './simulation/automaton.js';
+import { CliffordQCA, PRESETS, DEFAULT_RULE_MATRIX } from './simulation/automaton.js';
 import { pauliStringToF2 } from './simulation/clifford.js';
 import { SimulationControls } from './ui/controls.js';
 import { MainLayout, Section, ThreeColumnLayout } from './ui/layout.js';
 import { renderSpacetimeDiagram, renderCurrentState } from './visualization/spacetime.js';
+import { MathematicalAnalysis } from './analysis/MathematicalAnalysis.js';
 
 // Import custom hooks
 import { useSimulationState } from './hooks/useSimulationState.js';
@@ -32,6 +33,13 @@ export function App() {
     
     // Track whether a simulation has been started (and not yet reset)
     const [hasSimulationStarted, setHasSimulationStarted] = React.useState(false);
+
+    // new state to drive your MathematicalAnalysis panel
+    const [analysisOperators, setAnalysisOperators] = React.useState([{ type:'X', position:250 }]);
+    const [analysisLatticeSize, setAnalysisLatticeSize] = React.useState(500);
+    const [analysisRuleMatrix, setAnalysisRuleMatrix] = React.useState(() => 
+        ruleMatrix ? ruleMatrix.map(row => [...row]) : DEFAULT_RULE_MATRIX.map(row => [...row])
+    );
 
     // Initialize QCA when rule matrix changes
     useQCAInitialization({ 
@@ -86,7 +94,14 @@ export function App() {
         if (params.ruleMatrix) {
             // Create a deep copy to avoid reference issues
             setRuleMatrix(params.ruleMatrix.map(row => [...row]));
+            
+            // Also update the analysis rule matrix to stay in sync
+            setAnalysisRuleMatrix(params.ruleMatrix.map(row => [...row]));
         }
+        
+        // Also update analysis state when simulation runs
+        if (params.operators) setAnalysisOperators(params.operators);
+        if (params.latticeSize) setAnalysisLatticeSize(params.latticeSize);
         
         // Mark that a simulation has started
         setHasSimulationStarted(true);
@@ -126,8 +141,21 @@ export function App() {
         setStepTime(0);
         renderTimeRef.current = 0;
         
+        // Reset analysis state to match current simulation state
+        setAnalysisRuleMatrix(ruleMatrix.map(row => [...row]));
+        setAnalysisOperators([{ type: 'X', position: 250 }]);
+        setAnalysisLatticeSize(500);
+        
         // Mark that the simulation has been reset, re-enabling controls
         setHasSimulationStarted(false);
+    };
+    
+    // Handle analysis-only updates (no simulation start)
+    const handleAnalysisUpdate = ({ ruleMatrix, operators, latticeSize }) => {
+        // Update analysis-specific state variables only, not the simulation state
+        if (ruleMatrix) setAnalysisRuleMatrix(ruleMatrix.map(r=>[...r]));
+        if (operators) setAnalysisOperators(operators);
+        if (latticeSize) setAnalysisLatticeSize(latticeSize);
     };
     
     return (
@@ -140,6 +168,7 @@ export function App() {
                                 onRunSimulation={handleRunSimulation}
                                 onStopSimulation={handleStopSimulation}
                                 onResetSimulation={handleResetSimulation}
+                                onAnalysisUpdate={handleAnalysisUpdate}
                                 isRunning={isRunning}
                                 isDisabled={hasSimulationStarted}
                             />
@@ -190,8 +219,22 @@ export function App() {
                 }
                 rightColumn={
                     <>
-                        <Section title="About" collapsible={true} defaultExpanded={false} style={{ height: 'auto', marginBottom: '10px' }}>
+                        <Section title="About" collapsible={true} defaultExpanded={true} style={{ height: 'auto', marginBottom: '10px' }}>
                             <div className="info-panel">
+                                <h3>1D Clifford QCA Simulator</h3>
+                                <p>This simulator allows you to explore one-dimensional Clifford Quantum Cellular Automata and analyze their mathematical properties.</p>
+                                
+                                <h4>Mathematical Analysis</h4>
+                                <div className="mathematical-analysis">
+                                    {analysisRuleMatrix && (
+                                        <MathematicalAnalysis 
+                                            ruleMatrix={analysisRuleMatrix}
+                                            initialState={null}
+                                            operators={analysisOperators}
+                                            latticeSize={analysisLatticeSize}
+                                        />
+                                    )}
+                                </div>
                             </div>
                         </Section>
                     </>
