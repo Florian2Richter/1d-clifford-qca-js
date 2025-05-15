@@ -540,4 +540,48 @@ input[type="number"]::-webkit-inner-spin-button {
 
 input[type="number"] {
     -moz-appearance: textfield;
+}
+
+/* Add these CSS classes for the disabled controls and stop button */
+
+.disabled-container {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.prominent-stop-button {
+    background-color: #DB4437;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 10px 24px;
+    border-radius: 30px;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 160px;
+}
+
+.prominent-stop-button:hover {
+    background-color: #c13b30;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+.prominent-stop-button:active {
+    background-color: #a0352c;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transform: translateY(1px);
+}
+
+/* Style for disabled form elements */
+input:disabled,
+select:disabled,
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    background-color: #f5f5f5;
 } 

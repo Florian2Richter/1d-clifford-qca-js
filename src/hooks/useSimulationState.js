@@ -9,12 +9,11 @@ export function useSimulationState() {
     const [currentStep, setCurrentStep] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
     const [stepTime, setStepTime] = useState(0);
-    const [renderTime, setRenderTime] = useState(0);
     
     const currentStateRef = useRef(null);
     const spacetimeDiagramRef = useRef(null);
     const timeoutRef = useRef(null);
-    const renderTimeRef = useRef(0); // Store render time without triggering re-renders
+    const renderTimeRef = useRef(0); // Keep this for visualization hooks
 
     return {
         // State variables
@@ -25,7 +24,6 @@ export function useSimulationState() {
         currentStep, setCurrentStep,
         isRunning, setIsRunning,
         stepTime, setStepTime,
-        renderTime, setRenderTime,
         
         // Refs
         currentStateRef,

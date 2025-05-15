@@ -14,7 +14,6 @@ import { useQCAInitialization } from './hooks/useQCAInitialization.js';
 import { useSimulationSetup } from './hooks/useSimulationSetup.js';
 import { useSimulationAnimation } from './hooks/useSimulationAnimation.js';
 import { useVisualization } from './hooks/useVisualization.js';
-import { usePerformanceMetrics } from './hooks/usePerformanceMetrics.js';
 
 export function App() {
     const {
@@ -25,12 +24,14 @@ export function App() {
         currentStep, setCurrentStep,
         isRunning, setIsRunning,
         stepTime, setStepTime,
-        renderTime, setRenderTime,
         currentStateRef,
         spacetimeDiagramRef,
         timeoutRef,
         renderTimeRef
     } = useSimulationState();
+    
+    // Track whether a simulation has been started (and not yet reset)
+    const [hasSimulationStarted, setHasSimulationStarted] = React.useState(false);
 
     // Initialize QCA when rule matrix changes
     useQCAInitialization({ 
@@ -47,18 +48,10 @@ export function App() {
         setHistory,
         setCurrentStep,
         setStepTime,
-        setRenderTime,
         setIsRunning,
         timeoutRef,
         spacetimeDiagramRef,
         renderTimeRef
-    });
-    
-    // Metrics update hook
-    usePerformanceMetrics({
-        isRunning,
-        renderTimeRef,
-        setRenderTime
     });
     
     // Incremental animation effect
@@ -83,12 +76,34 @@ export function App() {
     });
     
     const handleRunSimulation = (params) => {
+        // If we're resuming a paused simulation, just turn isRunning back on
+        if (history.length > 1 && currentStep > 0 && !isRunning) {
+            setIsRunning(true);
+            return;
+        }
+        
         // If params includes a ruleMatrix, update our state
         if (params.ruleMatrix) {
             // Create a deep copy to avoid reference issues
             setRuleMatrix(params.ruleMatrix.map(row => [...row]));
         }
+        
+        // Mark that a simulation has started
+        setHasSimulationStarted(true);
+        
+        // Start the simulation
         setSimulationParams(params);
+    };
+    
+    const handleStopSimulation = () => {
+        // Stop the running animation
+        setIsRunning(false);
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
+        
+        // Note: Controls remain disabled because hasSimulationStarted is still true
     };
     
     const handleResetSimulation = () => {
@@ -109,8 +124,10 @@ export function App() {
         setHistory([qca.getState()]);
         setCurrentStep(0);
         setStepTime(0);
-        setRenderTime(0);
         renderTimeRef.current = 0;
+        
+        // Mark that the simulation has been reset, re-enabling controls
+        setHasSimulationStarted(false);
     };
     
     return (
@@ -121,16 +138,11 @@ export function App() {
                         <Section title="Simulation" collapsible={true}>
                             <SimulationControls
                                 onRunSimulation={handleRunSimulation}
+                                onStopSimulation={handleStopSimulation}
                                 onResetSimulation={handleResetSimulation}
+                                isRunning={isRunning}
+                                isDisabled={hasSimulationStarted}
                             />
-                        </Section>
-                        
-                        <Section title="Performance" collapsible={true} defaultExpanded={false}>
-                            <div className="info-panel">
-                                <p><strong>Computation Time:</strong> {stepTime > 0 ? `${stepTime.toFixed(3)} ms` : '< 0.001 ms'}</p>
-                                <p><strong>Rendering Time:</strong> {renderTime > 0 ? `${renderTime.toFixed(3)} ms` : '< 0.001 ms'}</p>
-                                <p><strong>Current Step:</strong> {currentStep}</p>
-                            </div>
                         </Section>
                     </>
                 }

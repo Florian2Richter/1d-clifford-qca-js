@@ -17,7 +17,6 @@ export function useSimulationSetup({
     setHistory,
     setCurrentStep,
     setStepTime,
-    setRenderTime,
     setIsRunning,
     timeoutRef,
     spacetimeDiagramRef,
@@ -131,12 +130,11 @@ export function useSimulationSetup({
         setHistory([newQca.getState()]);
         setCurrentStep(0);
         setStepTime(0);
-        setRenderTime(0);
         renderTimeRef.current = 0;
         setIsRunning(true); // Automatically start the incremental animation
         
     }, [simulationParams, ruleMatrix, 
        setQca, setHistory, setCurrentStep, 
-       setStepTime, setRenderTime, setIsRunning, 
+       setStepTime, setIsRunning, 
        timeoutRef, spacetimeDiagramRef, renderTimeRef]);
 } 

@@ -12,13 +12,19 @@ import { DEFAULT_RULE_MATRIX, PRESETS } from '../simulation/automaton.js';
  * 
  * @param {Object} props - Component properties
  * @param {Function} props.onRunSimulation - Callback when simulation is run
+ * @param {Function} props.onStopSimulation - Callback when simulation is stopped
  * @param {Function} props.onResetSimulation - Callback when simulation is reset
+ * @param {boolean} props.isRunning - Indicates whether the simulation is running
+ * @param {boolean} props.isDisabled - Indicates whether controls should be disabled
  * @param {number} props.defaultSize - Default lattice size
  * @param {number} props.defaultSteps - Default number of time steps
  */
 export function SimulationControls({ 
     onRunSimulation, 
+    onStopSimulation,
     onResetSimulation, 
+    isRunning,
+    isDisabled,
     defaultSize = 500, 
     defaultSteps = 250 
 }) {
@@ -152,6 +158,12 @@ export function SimulationControls({
         }
     };
     
+    const handleStopSimulation = () => {
+        if (onStopSimulation) {
+            onStopSimulation();
+        }
+    };
+    
     const handleResetSimulation = () => {
         if (onResetSimulation) {
             onResetSimulation();
@@ -193,12 +205,27 @@ export function SimulationControls({
         // Do not automatically switch presets when rule matrix changes
     };
     
+    // For UI, controls should be disabled if either simulation is running OR isDisabled is true
+    const controlsDisabled = isRunning || isDisabled;
+    
     return (
         <div className="simulation-controls">
             <div className="prominent-button-container">
-                <button className="prominent-run-button" onClick={handleRunSimulation}>
-                    Run Simulation
-                </button>
+                {isRunning ? (
+                    <button 
+                        className="prominent-stop-button" 
+                        onClick={handleStopSimulation}
+                    >
+                        Stop Simulation
+                    </button>
+                ) : (
+                    <button 
+                        className="prominent-run-button" 
+                        onClick={handleRunSimulation}
+                    >
+                        Run Simulation
+                    </button>
+                )}
                 <button className="reset-button" onClick={handleResetSimulation} style={{ marginLeft: '10px' }}>
                     Reset
                 </button>
@@ -214,6 +241,7 @@ export function SimulationControls({
                         max="1000"
                         value={latticeSize}
                         onChange={(e) => handleLatticeSize(e.target.value)}
+                        disabled={controlsDisabled}
                     />
                 </div>
                 
@@ -226,150 +254,20 @@ export function SimulationControls({
                         max="1000"
                         value={timeSteps}
                         onChange={(e) => handleTimeSteps(e.target.value)}
+                        disabled={controlsDisabled}
                     />
                 </div>
             </div>
             
             <div className="control-group">
-                <h3 style={{ textAlign: 'center', margin: '10px 0 10px' }}>Rule Matrices</h3>
-                <div style={{ marginTop: '5px' }}>
-                    <div className="rule-matrix-editor">
-                        <div className="matrix-vertical-container">
-                            {/* A_left Matrix */}
-                            <div className="matrix-section">
-                                <div className="matrix-label">A_left</div>
-                                <table className="matrix-table">
-                                    <tbody>
-                                        {[0, 1].map(rowIndex => (
-                                            <tr key={rowIndex}>
-                                                {[0, 1].map(colIndex => {
-                                                    const actualColIndex = colIndex;
-                                                    return (
-                                                        <td key={colIndex} className="left-matrix">
-                                                            <div className="number-picker">
-                                                                <button 
-                                                                    className="number-picker-btn"
-                                                                    onClick={() => {
-                                                                        const newMatrix = [...ruleMatrix];
-                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
-                                                                        handleRuleMatrixChange(newMatrix);
-                                                                    }}
-                                                                >
-                                                                    −
-                                                                </button>
-                                                                <span className="number-picker-value">{ruleMatrix[rowIndex][actualColIndex]}</span>
-                                                                <button 
-                                                                    className="number-picker-btn"
-                                                                    onClick={() => {
-                                                                        const newMatrix = [...ruleMatrix];
-                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
-                                                                        handleRuleMatrixChange(newMatrix);
-                                                                    }}
-                                                                >
-                                                                    +
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* A_center Matrix */}
-                            <div className="matrix-section">
-                                <div className="matrix-label">A_center</div>
-                                <table className="matrix-table">
-                                    <tbody>
-                                        {[0, 1].map(rowIndex => (
-                                            <tr key={rowIndex}>
-                                                {[0, 1].map(colIndex => {
-                                                    const actualColIndex = colIndex + 2;
-                                                    return (
-                                                        <td key={colIndex} className="center-matrix">
-                                                            <div className="number-picker">
-                                                                <button 
-                                                                    className="number-picker-btn"
-                                                                    onClick={() => {
-                                                                        const newMatrix = [...ruleMatrix];
-                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
-                                                                        handleRuleMatrixChange(newMatrix);
-                                                                    }}
-                                                                >
-                                                                    −
-                                                                </button>
-                                                                <span className="number-picker-value">{ruleMatrix[rowIndex][actualColIndex]}</span>
-                                                                <button 
-                                                                    className="number-picker-btn"
-                                                                    onClick={() => {
-                                                                        const newMatrix = [...ruleMatrix];
-                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
-                                                                        handleRuleMatrixChange(newMatrix);
-                                                                    }}
-                                                                >
-                                                                    +
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* A_right Matrix */}
-                            <div className="matrix-section">
-                                <div className="matrix-label">A_right</div>
-                                <table className="matrix-table">
-                                    <tbody>
-                                        {[0, 1].map(rowIndex => (
-                                            <tr key={rowIndex}>
-                                                {[0, 1].map(colIndex => {
-                                                    const actualColIndex = colIndex + 4;
-                                                    return (
-                                                        <td key={colIndex} className="right-matrix">
-                                                            <div className="number-picker">
-                                                                <button 
-                                                                    className="number-picker-btn"
-                                                                    onClick={() => {
-                                                                        const newMatrix = [...ruleMatrix];
-                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] === 0) ? 1 : 0;
-                                                                        handleRuleMatrixChange(newMatrix);
-                                                                    }}
-                                                                >
-                                                                    −
-                                                                </button>
-                                                                <span className="number-picker-value">{ruleMatrix[rowIndex][actualColIndex]}</span>
-                                                                <button 
-                                                                    className="number-picker-btn"
-                                                                    onClick={() => {
-                                                                        const newMatrix = [...ruleMatrix];
-                                                                        newMatrix[rowIndex] = [...newMatrix[rowIndex]];
-                                                                        newMatrix[rowIndex][actualColIndex] = (newMatrix[rowIndex][actualColIndex] + 1) % 2;
-                                                                        handleRuleMatrixChange(newMatrix);
-                                                                    }}
-                                                                >
-                                                                    +
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                <div className={controlsDisabled ? 'disabled-container' : ''}>
+                    <h3 style={{ textAlign: 'center', margin: '10px 0 10px' }}>Rule Matrices</h3>
+                    <div style={{ marginTop: '5px' }}>
+                        <RuleMatrixEditor 
+                            ruleMatrix={ruleMatrix} 
+                            onRuleMatrixChange={handleRuleMatrixChange}
+                            disabled={controlsDisabled}
+                        />
                     </div>
                 </div>
             </div>
@@ -381,6 +279,7 @@ export function SimulationControls({
                     value={selectedPreset}
                     onChange={(e) => handlePresetChange(e.target.value)}
                     style={{ width: '100%', marginBottom: '10px' }}
+                    disabled={controlsDisabled}
                 >
                     {Object.keys(PRESETS).map(preset => (
                         <option key={preset} value={preset}>
@@ -393,67 +292,71 @@ export function SimulationControls({
             <h3 style={{ textAlign: 'center', margin: '20px 0 10px' }}>Initial Configuration</h3>
             
             <div className="control-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <label style={{ margin: 0 }}>Non-identity Operators: {operators.length}</label>
-                    <div style={{ display: 'flex' }}>
-                    <button 
-                        type="button" 
-                        onClick={addOperator}
-                        disabled={operators.length >= latticeSize}
-                            style={{ marginRight: '5px', padding: '2px 8px' }}
-                    >
-                        +
-                    </button>
-                    <button 
-                        type="button" 
-                        onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
-                        disabled={operators.length <= 1}
-                            style={{ padding: '2px 8px' }}
-                    >
-                        -
-                    </button>
-                    </div>
-                </div>
-                
-                <div className="operators-list" style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto' }}>
-                    {operators.map((op, index) => (
-                        <div key={index} style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            marginBottom: '5px',
-                            padding: '5px',
-                            backgroundColor: '#f5f5f5',
-                            borderRadius: '4px'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                <label style={{ marginRight: '10px' }}>Type:</label>
-                                <select 
-                                    value={op.type} 
-                                    onChange={(e) => updateOperator(index, 'type', e.target.value)}
-                                    style={{ marginRight: '15px' }}
-                                >
-                                    <option value="X">X</option>
-                                    <option value="Y">Y</option>
-                                    <option value="Z">Z</option>
-                                </select>
-                                
-                                <label style={{ marginRight: '10px' }}>Position:</label>
-                                <input 
-                                    type="text" 
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    value={op.position}
-                                    onChange={(e) => updateOperator(index, 'position', e.target.value)}
-                                    style={{ 
-                                        width: '50px',
-                                        textAlign: 'center',
-                                        padding: '4px'
-                                    }}
-                                />
-                            </div>
+                <div className={controlsDisabled ? 'disabled-container' : ''}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <label style={{ margin: 0 }}>Non-identity Operators: {operators.length}</label>
+                        <div style={{ display: 'flex' }}>
+                        <button 
+                            type="button" 
+                            onClick={addOperator}
+                            disabled={operators.length >= latticeSize || controlsDisabled}
+                                style={{ marginRight: '5px', padding: '2px 8px' }}
+                        >
+                            +
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => operators.length > 1 && removeOperator(operators.length - 1)}
+                            disabled={operators.length <= 1 || controlsDisabled}
+                                style={{ padding: '2px 8px' }}
+                        >
+                            -
+                        </button>
                         </div>
-                    ))}
+                    </div>
+                    
+                    <div className="operators-list" style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto' }}>
+                        {operators.map((op, index) => (
+                            <div key={index} style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                marginBottom: '5px',
+                                padding: '5px',
+                                backgroundColor: '#f5f5f5',
+                                borderRadius: '4px'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                    <label style={{ marginRight: '10px' }}>Type:</label>
+                                    <select 
+                                        value={op.type} 
+                                        onChange={(e) => updateOperator(index, 'type', e.target.value)}
+                                        style={{ marginRight: '15px' }}
+                                        disabled={controlsDisabled}
+                                    >
+                                        <option value="X">X</option>
+                                        <option value="Y">Y</option>
+                                        <option value="Z">Z</option>
+                                    </select>
+                                    
+                                    <label style={{ marginRight: '10px' }}>Position:</label>
+                                    <input 
+                                        type="text" 
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={op.position}
+                                        onChange={(e) => updateOperator(index, 'position', e.target.value)}
+                                        style={{ 
+                                            width: '50px',
+                                            textAlign: 'center',
+                                            padding: '4px'
+                                        }}
+                                        disabled={controlsDisabled}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
@@ -466,11 +369,14 @@ export function SimulationControls({
  * @param {Object} props - Component properties
  * @param {Array} props.ruleMatrix - 2x6 rule matrix
  * @param {Function} props.onRuleMatrixChange - Callback when rule matrix changes
+ * @param {boolean} props.disabled - Whether the editor is disabled
  */
-export function RuleMatrixEditor({ ruleMatrix = DEFAULT_RULE_MATRIX, onRuleMatrixChange }) {
+export function RuleMatrixEditor({ ruleMatrix = DEFAULT_RULE_MATRIX, onRuleMatrixChange, disabled }) {
     const [matrix, setMatrix] = useState(ruleMatrix);
     
     const handleCellChange = (row, col, value) => {
+        if (disabled) return;
+        
         const newValue = parseInt(value, 10) % 2; // Ensure binary (0 or 1)
         const newMatrix = [...matrix];
         newMatrix[row] = [...newMatrix[row]];
@@ -484,6 +390,8 @@ export function RuleMatrixEditor({ ruleMatrix = DEFAULT_RULE_MATRIX, onRuleMatri
     };
     
     const handleReset = () => {
+        if (disabled) return;
+        
         setMatrix(DEFAULT_RULE_MATRIX);
         
         if (onRuleMatrixChange) {
