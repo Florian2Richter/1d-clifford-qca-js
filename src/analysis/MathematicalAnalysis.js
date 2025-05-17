@@ -10,7 +10,8 @@ import {
     hasOrthogonalStabilizer,
     determinant,
     ruleMatrixToLaurent,
-    initialStateToLaurent
+    initialStateToLaurent,
+    calculateLogicalQubits
 } from './laurentPolynomial.js';
 
 /**
@@ -45,9 +46,13 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
     const [invertible, setInvertible] = useState(false);
     const [symplectic, setSymplectic] = useState(false);
     const [orthogonalStabilizer, setOrthogonalStabilizer] = useState(false);
+    const [logicalQubits, setLogicalQubits] = useState(0);
     const [invertibleDetails, setInvertibleDetails] = useState('');
     const [symplecticDetails, setSymplecticDetails] = useState('');
     const [stabilizerDetails, setStabilizerDetails] = useState('');
+    
+    // Keep the state but don't display it
+    const [logicalQubitsDetails, setLogicalQubitsDetails] = useState('');
 
     // Create state array if needed - memoized for performance
     const state = useMemo(() => {
@@ -120,9 +125,20 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
                     "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) = 0" : 
                     "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) ≠ 0")
             );
+
+            // Calculate logical qubits if the stabilizer is orthogonal
+            if (isOrthogonal && latticeSize) {
+                const k = calculateLogicalQubits(state, latticeSize);
+                setLogicalQubits(k);
+                setLogicalQubitsDetails(`k = ${k} logical qubits`);
+            } else {
+                setLogicalQubits(0);
+                setLogicalQubitsDetails('Cannot calculate logical qubits (non-orthogonal stabilizer)');
+            }
         } catch (error) {
             console.error("Error in stabilizer analysis:", error);
             setStabilizerDetails('Error calculating Laurent polynomials');
+            setLogicalQubitsDetails('Error calculating logical qubits');
         }
     }, [state, operators, latticeSize]);
 
@@ -132,10 +148,11 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
             onPropertiesChange({
                 invertible,
                 symplectic,
-                orthogonalStabilizer
+                orthogonalStabilizer,
+                logicalQubits
             });
         }
-    }, [invertible, symplectic, orthogonalStabilizer, onPropertiesChange]);
+    }, [invertible, symplectic, orthogonalStabilizer, logicalQubits, onPropertiesChange]);
 
     return (
         <div className="mathematical-analysis">

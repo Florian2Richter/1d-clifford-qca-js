@@ -505,6 +505,36 @@ button:active {
     border-left: 4px solid var(--secondary-color);
 }
 
+.quantum-info {
+    margin: 0;
+    padding: 10px;
+    background-color: rgba(15, 157, 88, 0.08);
+    border-radius: 6px;
+}
+
+.quantum-info p {
+    font-size: 1.2rem;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+}
+
+.quantum-info strong {
+    font-size: 1.4rem;
+    color: var(--primary-color);
+    margin-right: 10px;
+    display: inline-block;
+    width: 20px;
+    text-align: right;
+}
+
+.info-label {
+    margin-left: 10px;
+    font-size: 0.9rem;
+    color: var(--text-color-secondary);
+    font-style: italic;
+}
+
 .quantum-content ul {
     margin-left: 20px;
     padding-left: 0;
@@ -680,4 +710,28 @@ button:disabled {
     cursor: not-allowed;
     opacity: 0.6;
     background-color: #f5f5f5;
+}
+
+/* Remove the logical-qubits-info styles */
+.logical-qubits-info {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: rgba(15, 157, 88, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #0F9D58;
+}
+
+.logical-qubits-info h4 {
+    margin-top: 0;
+    color: #0F9D58;
+}
+
+.logical-qubits-info strong {
+    font-size: 1.2rem;
+    color: #0F9D58;
+}
+
+.logical-qubits-info em {
+    font-size: 0.9rem;
+    color: #666;
 } 

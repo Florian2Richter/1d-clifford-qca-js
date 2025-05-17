@@ -390,4 +390,109 @@ export function hasOrthogonalStabilizer(initialState) {
     
     // Check if S(z) = 0
     return Object.keys(S.coeffs).length === 0;
+}
+
+/**
+ * Calculate the greatest common divisor (GCD) of two Laurent polynomials in F2[x±1]
+ * @param {LaurentPolynomial} poly1 - First Laurent polynomial
+ * @param {LaurentPolynomial} poly2 - Second Laurent polynomial
+ * @returns {LaurentPolynomial} - GCD of the two polynomials
+ */
+export function gcd(poly1, poly2) {
+    // Create copies to avoid modifying the originals
+    let a = new LaurentPolynomial({ ...poly1.coeffs }, poly1.modulus);
+    let b = new LaurentPolynomial({ ...poly2.coeffs }, poly2.modulus);
+    
+    // Handle special cases
+    if (Object.keys(a.coeffs).length === 0) return b;
+    if (Object.keys(b.coeffs).length === 0) return a;
+    
+    // Euclidean algorithm for polynomials
+    while (Object.keys(b.coeffs).length > 0) {
+        // We need to implement polynomial division for Laurent polynomials
+        // This is a simplified version for F2[x±1]
+        const aExponents = Object.keys(a.coeffs).map(e => parseInt(e));
+        const bExponents = Object.keys(b.coeffs).map(e => parseInt(e));
+        
+        // Find highest exponents
+        const aMaxExp = Math.max(...aExponents);
+        const bMaxExp = Math.max(...bExponents);
+        
+        // If b's degree is higher, swap a and b
+        if (bMaxExp > aMaxExp) {
+            const temp = a;
+            a = b;
+            b = temp;
+            continue;
+        }
+        
+        // Calculate the shift needed for division
+        const shift = aMaxExp - bMaxExp;
+        
+        // Create a shifted version of b
+        const shiftedB = new LaurentPolynomial({}, b.modulus);
+        for (const exp in b.coeffs) {
+            shiftedB.coeffs[parseInt(exp) + shift] = b.coeffs[exp];
+        }
+        
+        // Subtract shiftedB from a (which is addition in F2)
+        a = a.add(shiftedB);
+        
+        // If a is zero, return b
+        if (Object.keys(a.coeffs).length === 0) return b;
+        
+        // If a's degree is now less than b's, swap them
+        if (Math.max(...Object.keys(a.coeffs).map(e => parseInt(e))) < 
+            Math.max(...Object.keys(b.coeffs).map(e => parseInt(e)))) {
+            const temp = a;
+            a = b;
+            b = temp;
+        }
+    }
+    
+    return a;
+}
+
+/**
+ * Calculate the GCD of a Laurent polynomial with xN-1 to impose periodicity
+ * @param {LaurentPolynomial} poly - Laurent polynomial
+ * @param {number} N - Chain length (periodicity)
+ * @returns {LaurentPolynomial} - GCD of poly and xN-1
+ */
+export function gcdWithPeriodicity(poly, N) {
+    // Create xN-1 polynomial
+    const periodicityPoly = new LaurentPolynomial({
+        [N]: 1,
+        [0]: poly.modulus === 2 ? 1 : -1
+    }, poly.modulus);
+    
+    return gcd(poly, periodicityPoly);
+}
+
+/**
+ * Calculate the number of logical qubits in a stabilizer code
+ * @param {Array} initialState - Array of Pauli operators in F2 representation
+ * @param {number} chainLength - Chain length (periodicity)
+ * @returns {number} - Number of logical qubits
+ */
+export function calculateLogicalQubits(initialState, chainLength) {
+    // Step 1: Extract the single generator in the form H(x) = [gZ(x) | gX(x)]
+    const { X: gX, Z: gZ } = initialStateToLaurent(initialState);
+    
+    // Step 2: Compute the SNF diagonal d1(x) = gcd(gZ(x), gX(x))
+    const d1 = gcd(gZ, gX);
+    
+    // Step 3: Impose periodicity -> finite-NN GCD: d1(N)(x) = gcd(d1(x), xN-1)
+    const d1N = gcdWithPeriodicity(d1, chainLength);
+    
+    // Step 4: Logical qubits k = degree of d1(N)(x)
+    // Calculate the degree as the highest exponent minus the lowest exponent
+    if (Object.keys(d1N.coeffs).length === 0) {
+        return 0; // Empty polynomial, no logical qubits
+    }
+    
+    const exponents = Object.keys(d1N.coeffs).map(e => parseInt(e));
+    const degree = Math.max(...exponents) - Math.min(...exponents);
+    
+    return degree;
 } 

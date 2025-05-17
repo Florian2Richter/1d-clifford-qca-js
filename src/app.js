@@ -45,7 +45,8 @@ export function App() {
     const [mathProperties, setMathProperties] = React.useState({
         invertible: false,
         symplectic: false,
-        orthogonalStabilizer: false
+        orthogonalStabilizer: false,
+        logicalQubits: 0
     });
 
     // Initialize QCA when rule matrix changes
@@ -248,17 +249,12 @@ export function App() {
                         
                         <Section title="Quantum Pane" collapsible={true} defaultExpanded={true} style={{ height: 'auto', marginBottom: '10px' }}>
                             <div className={`quantum-pane ${!mathProperties.invertible || !mathProperties.symplectic || !mathProperties.orthogonalStabilizer ? 'disabled-container' : ''}`}>
-                                <h3>Quantum Circuit Information</h3>
                                 {mathProperties.invertible && mathProperties.symplectic && mathProperties.orthogonalStabilizer ? (
                                     <div className="quantum-content">
-                                        <p>All mathematical properties are satisfied!</p>
-                                        <p>This rule matrix represents a valid quantum circuit that:</p>
-                                        <ul>
-                                            <li>Is invertible (unitary)</li>
-                                            <li>Preserves the symplectic form</li>
-                                            <li>Generates orthogonal stabilizers</li>
-                                        </ul>
-                                        <p>This means the dynamics represent a physically realizable quantum evolution.</p>
+                                        <div className="quantum-info">
+                                            <p><strong>N</strong> = {analysisLatticeSize} <span className="info-label">Number of Qubits in a row</span></p>
+                                            <p><strong>k</strong> = {mathProperties.logicalQubits} <span className="info-label">Number of logical qubits</span></p>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="message-box">
