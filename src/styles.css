@@ -492,6 +492,47 @@ button:active {
     margin-top: 15px;
 }
 
+/* Quantum Pane styles */
+.quantum-pane {
+    padding: 10px;
+    transition: opacity 0.3s ease;
+}
+
+.quantum-content {
+    background-color: #f0f8ff;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid var(--secondary-color);
+}
+
+.quantum-content ul {
+    margin-left: 20px;
+    padding-left: 0;
+}
+
+.quantum-content li {
+    margin-bottom: 5px;
+    list-style-type: none;
+    position: relative;
+    padding-left: 25px;
+}
+
+.quantum-content li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--secondary-color);
+    font-weight: bold;
+}
+
+.message-box {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    border-left: 4px solid #ccc;
+    opacity: 0.7;
+}
+
 .property-display {
     margin-bottom: 15px;
     padding: 12px;

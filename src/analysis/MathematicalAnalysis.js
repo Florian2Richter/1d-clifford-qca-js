@@ -41,7 +41,7 @@ const PAULI = {
 /**
  * Mathematical Analysis component
  */
-export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latticeSize }) {
+export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latticeSize, onPropertiesChange }) {
     const [invertible, setInvertible] = useState(false);
     const [symplectic, setSymplectic] = useState(false);
     const [orthogonalStabilizer, setOrthogonalStabilizer] = useState(false);
@@ -125,6 +125,17 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
             setStabilizerDetails('Error calculating Laurent polynomials');
         }
     }, [state, operators, latticeSize]);
+
+    // Notify parent component when properties change
+    useEffect(() => {
+        if (onPropertiesChange) {
+            onPropertiesChange({
+                invertible,
+                symplectic,
+                orthogonalStabilizer
+            });
+        }
+    }, [invertible, symplectic, orthogonalStabilizer, onPropertiesChange]);
 
     return (
         <div className="mathematical-analysis">

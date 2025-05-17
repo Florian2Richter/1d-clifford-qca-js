@@ -40,6 +40,13 @@ export function App() {
     const [analysisRuleMatrix, setAnalysisRuleMatrix] = React.useState(() => 
         ruleMatrix ? ruleMatrix.map(row => [...row]) : DEFAULT_RULE_MATRIX.map(row => [...row])
     );
+    
+    // Track mathematical properties for Quantum Pane
+    const [mathProperties, setMathProperties] = React.useState({
+        invertible: false,
+        symplectic: false,
+        orthogonalStabilizer: false
+    });
 
     // Initialize QCA when rule matrix changes
     useQCAInitialization({ 
@@ -232,9 +239,33 @@ export function App() {
                                             initialState={null}
                                             operators={analysisOperators}
                                             latticeSize={analysisLatticeSize}
+                                            onPropertiesChange={setMathProperties}
                                         />
                                     )}
                                 </div>
+                            </div>
+                        </Section>
+                        
+                        <Section title="Quantum Pane" collapsible={true} defaultExpanded={true} style={{ height: 'auto', marginBottom: '10px' }}>
+                            <div className={`quantum-pane ${!mathProperties.invertible || !mathProperties.symplectic || !mathProperties.orthogonalStabilizer ? 'disabled-container' : ''}`}>
+                                <h3>Quantum Circuit Information</h3>
+                                {mathProperties.invertible && mathProperties.symplectic && mathProperties.orthogonalStabilizer ? (
+                                    <div className="quantum-content">
+                                        <p>All mathematical properties are satisfied!</p>
+                                        <p>This rule matrix represents a valid quantum circuit that:</p>
+                                        <ul>
+                                            <li>Is invertible (unitary)</li>
+                                            <li>Preserves the symplectic form</li>
+                                            <li>Generates orthogonal stabilizers</li>
+                                        </ul>
+                                        <p>This means the dynamics represent a physically realizable quantum evolution.</p>
+                                    </div>
+                                ) : (
+                                    <div className="message-box">
+                                        <p>This configuration doesn't satisfy all mathematical requirements for a valid quantum circuit.</p>
+                                        <p>Check the Mathematical Analysis section to see which properties need to be fixed.</p>
+                                    </div>
+                                )}
                             </div>
                         </Section>
                     </>
