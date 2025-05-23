@@ -46,7 +46,8 @@ export function App() {
         invertible: false,
         symplectic: false,
         orthogonalStabilizer: false,
-        logicalQubits: 0
+        logicalQubits: 0,
+        codeDistance: 0
     });
 
     // Initialize QCA when rule matrix changes
@@ -254,6 +255,7 @@ export function App() {
                                         <div className="quantum-info">
                                             <p><strong>N</strong> = {analysisLatticeSize} <span className="info-label">Number of Qubits in a row</span></p>
                                             <p><strong>k</strong> = {mathProperties.logicalQubits} <span className="info-label">Number of logical qubits</span></p>
+                                            <p><strong>d</strong> = {mathProperties.codeDistance} <span className="info-label">Code distance</span></p>
                                         </div>
                                     </div>
                                 ) : (

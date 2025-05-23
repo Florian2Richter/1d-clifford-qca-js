@@ -495,4 +495,142 @@ export function calculateLogicalQubits(initialState, chainLength) {
     const degree = Math.max(...exponents) - Math.min(...exponents);
     
     return degree;
+}
+
+/**
+ * Reduce a LaurentPolynomial to an N-length binary array
+ * in F₂[x]/(x^N−1).
+ *
+ * @param {LaurentPolynomial} poly  – your Laurent polynomial
+ * @param {number} N                – chain length
+ * @returns {number[]}              – array [a0,…,a_{N-1}] mod 2
+ */
+export function laurentToPolynomial(poly, N) {
+  const arr = Array(N).fill(0);
+  // For each term x^e in poly.coeffs, reduce e mod N and toggle arr[e mod N].
+  Object.entries(poly.coeffs).forEach(([expStr, coeff]) => {
+    const e = parseInt(expStr, 10);
+    const i = ((e % N) + N) % N;
+    // In F₂ we just xor the coefficient
+    arr[i] = (arr[i] + coeff) & 1;
+  });
+  return arr;
+}
+
+/**
+ * Compute Hamming weight of a binary array.
+ *
+ * @param {number[]} bits  – array of 0/1
+ * @returns {number}       – count of 1's
+ */
+export function hammingWeight(bits) {
+  return bits.reduce((sum, b) => sum + (b === 1 ? 1 : 0), 0);
+}
+
+/**
+ * Perform cyclic "division" of (x^N−1) by divisorArr in F₂[x]/(x^N−1).
+ * Returns the quotient, which is the residual R(x).
+ *
+ * @param {number[]} dividendArr  – array for x^N−1 (should be [1,0,0…,0,1])
+ * @param {number[]} divisorArr   – array for d1^N(x)
+ * @returns {number[]}            – residual quotient R
+ */
+export function divideCyclic(dividendArr, divisorArr) {
+  const N = dividendArr.length;
+  // Copy dividend into R
+  const R = dividendArr.slice();
+
+  // Long division: for i from high→low, if divisorArr[i] and R[i] both 1,
+  // xor (shifted) divisorArr into R so as to eliminate R[i].
+  for (let i = N - 1; i >= 0; i--) {
+    if (divisorArr[i] === 1 && R[i] === 1) {
+      for (let j = 0; j < N; j++) {
+        if (divisorArr[j] === 1) {
+          // Align divisor's degree-j term to position i
+          const pos = (j + (i - (N - 1)) + N) % N;
+          R[pos] ^= 1;
+        }
+      }
+    }
+  }
+
+  // In the cyclic quotient ring this R is the quotient (residual).
+  return R;
+}
+
+/**
+ * Compute the code distance d for a single-generator 1D cyclic code.
+ *
+ * Steps:
+ *   1) Build d1(x) = gcd(gZ, gX) and d1^N(x) = gcd(d1, x^N−1)
+ *   2) Reduce x^N−1 and d1^N(x) to bit arrays
+ *   3) Divide to get the residual R(x)
+ *   4) Scan all N cyclic shifts of R for the smallest nonzero Hamming weight
+ *
+ * @param {Array} initialState  – Pauli symplectic array [[z_i,x_i],…]
+ * @param {number} N            – chain length
+ * @returns {number}            – code distance d
+ */
+export function calculateCodeDistance(initialState, N) {
+  // First check if there are any logical qubits
+  const k = calculateLogicalQubits(initialState, N);
+  if (k === 0) {
+    console.log("No logical qubits, returning code distance 0");
+    return 0;  // No logical qubits means no code distance
+  }
+
+  // 1) extract generator polynomials (assumes these helpers exist)
+  const { X: gX, Z: gZ } = initialStateToLaurent(initialState);
+  console.log("Generator polynomials:", "X =", gX.toString(), "Z =", gZ.toString());
+  
+  const d1 = gcd(gZ, gX);
+  console.log("GCD d1(x) =", d1.toString());
+  
+  const d1N = gcdWithPeriodicity(d1, N);
+  console.log("Periodicity-imposed GCD d1N(x) =", d1N.toString());
+  
+  // 2) build the two F₂-arrays
+  //   x^N−1 mod 2  is 1 + x^N, i.e. bits[0]=1, bits[N-1]=1
+  const xNminus1 = Array(N).fill(0);
+  xNminus1[0] = 1;
+  xNminus1[N-1] = 1;
+  
+  const divisorArr = laurentToPolynomial(d1N, N);
+  console.log("Divisor array:", divisorArr);
+  
+  // Special case: If all X or all Z (meaning one is 0)
+  if (Object.keys(gX.coeffs).length === 0 || Object.keys(gZ.coeffs).length === 0) {
+    // For a single generator, we need a special case
+    // The minimum weight codeword is just x^k + 1 where k is the degree of non-zero generator
+    if (Object.keys(gX.coeffs).length > 0) {
+      return 2; // X-only generator has distance 2 (for cyclic codes)
+    }
+    if (Object.keys(gZ.coeffs).length > 0) {
+      return 2; // Z-only generator has distance 2 (for cyclic codes)
+    }
+    return 0; // Both zero - trivial code
+  }
+
+  // 3) get the residual R(x) = (x^N−1) / d1^N(x)
+  const residual = divideCyclic(xNminus1, divisorArr);
+  console.log("Residual polynomial R(x) =", residual);
+  
+  // 4) scan cyclic shifts of R for minimal nonzero weight
+  let minWeight = Infinity;
+  for (let shift = 0; shift < N; shift++) {
+    // count ones in R rotated by `shift`
+    let w = 0;
+    for (let i = 0; i < N; i++) {
+      if (residual[(i + shift) % N] === 1) w++;
+    }
+    if (w > 0 && w < minWeight) {
+      minWeight = w;
+      console.log(`Found new minimum weight ${w} at shift ${shift}`);
+      // distance-1 is the absolute minimum; we can stop early
+      if (minWeight === 1) break;
+    }
+  }
+  
+  console.log("Final minimum weight:", minWeight);
+  return minWeight === Infinity ? 0 : minWeight;
 } 

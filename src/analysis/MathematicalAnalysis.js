@@ -11,7 +11,8 @@ import {
     determinant,
     ruleMatrixToLaurent,
     initialStateToLaurent,
-    calculateLogicalQubits
+    calculateLogicalQubits,
+    calculateCodeDistance
 } from './laurentPolynomial.js';
 
 /**
@@ -47,6 +48,7 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
     const [symplectic, setSymplectic] = useState(false);
     const [orthogonalStabilizer, setOrthogonalStabilizer] = useState(false);
     const [logicalQubits, setLogicalQubits] = useState(0);
+    const [codeDistance, setCodeDistance] = useState(0);
     const [invertibleDetails, setInvertibleDetails] = useState('');
     const [symplecticDetails, setSymplecticDetails] = useState('');
     const [stabilizerDetails, setStabilizerDetails] = useState('');
@@ -126,13 +128,22 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
                     "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) ≠ 0")
             );
 
-            // Calculate logical qubits if the stabilizer is orthogonal
+            // Calculate logical qubits and code distance if the stabilizer is orthogonal
             if (isOrthogonal && latticeSize) {
                 const k = calculateLogicalQubits(state, latticeSize);
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
+                
+                // Only calculate code distance if there are logical qubits
+                let d = 0;
+                if (k > 0) {
+                    d = calculateCodeDistance(state, latticeSize);
+                    console.log("Code distance calculated:", d);
+                }
+                setCodeDistance(d);
             } else {
                 setLogicalQubits(0);
+                setCodeDistance(0);
                 setLogicalQubitsDetails('Cannot calculate logical qubits (non-orthogonal stabilizer)');
             }
         } catch (error) {
@@ -149,10 +160,11 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
                 invertible,
                 symplectic,
                 orthogonalStabilizer,
-                logicalQubits
+                logicalQubits,
+                codeDistance
             });
         }
-    }, [invertible, symplectic, orthogonalStabilizer, logicalQubits, onPropertiesChange]);
+    }, [invertible, symplectic, orthogonalStabilizer, logicalQubits, codeDistance, onPropertiesChange]);
 
     return (
         <div className="mathematical-analysis">
