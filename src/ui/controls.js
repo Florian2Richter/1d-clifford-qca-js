@@ -27,8 +27,8 @@ export function SimulationControls({
     onAnalysisUpdate,
     isRunning,
     isDisabled,
-    defaultSize = 500, 
-    defaultSteps = 250 
+    defaultSize = 100, 
+    defaultSteps = 50 
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
@@ -196,8 +196,8 @@ export function SimulationControls({
             const customString = 'OPERATORS'; // Special marker to use operators array
             
             onRunSimulation({
-                latticeSize: parseInt(latticeSize) || 500,
-                timeSteps: parseInt(timeSteps) || 250,
+                latticeSize: parseInt(latticeSize) || 100,
+                timeSteps: parseInt(timeSteps) || 50,
                 initialStateType: 'custom',
                 customPauliString: customString,
                 selectedPreset: selectedPreset,

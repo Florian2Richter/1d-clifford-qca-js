@@ -35,8 +35,8 @@ export function App() {
     const [hasSimulationStarted, setHasSimulationStarted] = React.useState(false);
 
     // new state to drive your MathematicalAnalysis panel
-    const [analysisOperators, setAnalysisOperators] = React.useState([{ type:'X', position:250 }]);
-    const [analysisLatticeSize, setAnalysisLatticeSize] = React.useState(500);
+    const [analysisOperators, setAnalysisOperators] = React.useState([{ type:'X', position:50 }]);
+    const [analysisLatticeSize, setAnalysisLatticeSize] = React.useState(100);
     const [analysisRuleMatrix, setAnalysisRuleMatrix] = React.useState(() => 
         ruleMatrix ? ruleMatrix.map(row => [...row]) : DEFAULT_RULE_MATRIX.map(row => [...row])
     );
@@ -152,8 +152,8 @@ export function App() {
         
         // Reset analysis state to match current simulation state
         setAnalysisRuleMatrix(ruleMatrix.map(row => [...row]));
-        setAnalysisOperators([{ type: 'X', position: 250 }]);
-        setAnalysisLatticeSize(500);
+        setAnalysisOperators([{ type: 'X', position: 50 }]);
+        setAnalysisLatticeSize(100);
         
         // Mark that the simulation has been reset, re-enabling controls
         setHasSimulationStarted(false);

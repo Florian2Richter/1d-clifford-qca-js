@@ -19,7 +19,7 @@ export const PRESETS = {
         ],
         initialState: {
             operators: [
-                { type: 'X', position: 250 }
+                { type: 'X', position: 50 }
             ]
         }
     },
@@ -31,7 +31,7 @@ export const PRESETS = {
         ],
         initialState: {
             operators: [
-                { type: 'X', position: 250 }
+                { type: 'X', position: 50 }
             ]
         }
     },
@@ -43,8 +43,8 @@ export const PRESETS = {
         ],
         initialState: {
             operators: [
-                { type: 'X', position: 250 },
-                { type: 'Z', position: 251 }
+                { type: 'X', position: 50 },
+                { type: 'Z', position: 51 }
             ]
         }
     },
@@ -56,7 +56,7 @@ export const PRESETS = {
         ],
         initialState: {
             operators: [
-                { type: 'X', position: 250 }
+                { type: 'X', position: 50 }
             ]
         }
     }
@@ -78,7 +78,7 @@ export class CliffordQCA {
      * @param {number} size - Number of cells in the lattice
      * @param {Array} ruleMatrix - 2x6 rule matrix over F2
      */
-    constructor(size = 500, ruleMatrix = DEFAULT_RULE_MATRIX) {
+    constructor(size = 100, ruleMatrix = DEFAULT_RULE_MATRIX) {
         this.size = size;
         this.ruleMatrix = ruleMatrix;
         this.state = Array(size).fill(PAULI.I); // Initialize with identity
@@ -186,13 +186,16 @@ export class CliffordQCA {
         
         // Create the initial state based on the preset configuration
         const preset = PRESETS[presetName];
-        const centerOffset = Math.floor(latticeSize / 2) - 250; // Center the pattern regardless of lattice size
+        const operators = preset.operators || [];
+        
+        // Adjust positions based on lattice size
+        const centerOffset = Math.floor(latticeSize / 2) - 50; // Center the pattern regardless of lattice size
         
         // Initialize with identity operators
         const newState = Array(latticeSize).fill().map(() => [...PAULI.I]);
         
         // Place the operators according to the preset
-        preset.initialState.operators.forEach(op => {
+        operators.forEach(op => {
             // Adjust position to center the pattern in the current lattice
             const adjustedPosition = op.position + centerOffset;
             
