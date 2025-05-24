@@ -8,6 +8,7 @@ import {
     isInvertible, 
     isSymplecticRuleMatrix, 
     hasOrthogonalStabilizer,
+    hasOrthogonalStabilizerPeriodic,
     determinant,
     ruleMatrixToLaurent,
     initialStateToLaurent,
@@ -59,6 +60,7 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
     // Create state array if needed - memoized for performance
     const state = useMemo(() => {
         console.log("Recalculating state from operators", operators);
+        // If initialState is directly provided (e.g., current simulation state), use it
         if (initialState) return initialState;
         if (!operators || !latticeSize) return null;
         
@@ -114,8 +116,8 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
         if (!state) return;
         
         try {
-            // Check for orthogonal stabilizer
-            const isOrthogonal = hasOrthogonalStabilizer(state);
+            // Check for orthogonal stabilizer with periodic boundary conditions
+            const isOrthogonal = hasOrthogonalStabilizerPeriodic(state, latticeSize);
             console.log("Is orthogonal:", isOrthogonal);
             setOrthogonalStabilizer(isOrthogonal);
             
@@ -124,8 +126,8 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
             setStabilizerDetails(
                 `X(z) = ${X.toString()}\nZ(z) = ${Z.toString()}\n` + 
                 (isOrthogonal ? 
-                    "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) = 0" : 
-                    "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) ≠ 0")
+                    "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0" : 
+                    "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0")
             );
 
             // Calculate logical qubits and code distance if the stabilizer is orthogonal
@@ -151,7 +153,7 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
             setStabilizerDetails('Error calculating Laurent polynomials');
             setLogicalQubitsDetails('Error calculating logical qubits');
         }
-    }, [state, operators, latticeSize]);
+    }, [state, initialState, latticeSize]); // Add initialState as a dependency
 
     // Notify parent component when properties change
     useEffect(() => {

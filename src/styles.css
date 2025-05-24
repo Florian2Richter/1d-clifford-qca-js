@@ -494,45 +494,49 @@ button:active {
 
 /* Quantum Pane styles */
 .quantum-pane {
-    padding: 10px;
-    transition: opacity 0.3s ease;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.8);
+    margin-top: 15px;
 }
 
 .quantum-content {
-    background-color: #f0f8ff;
-    border-radius: 8px;
-    padding: 15px;
-    border-left: 4px solid var(--secondary-color);
+    display: flex;
+    flex-direction: column;
 }
 
 .quantum-info {
-    margin: 0;
-    padding: 10px;
-    background-color: rgba(15, 157, 88, 0.08);
-    border-radius: 6px;
+    margin-bottom: 15px;
 }
 
 .quantum-info p {
-    font-size: 1.2rem;
-    margin: 10px 0;
-    display: flex;
-    align-items: center;
+    margin: 5px 0;
+    font-size: 14px;
 }
 
-.quantum-info strong {
-    font-size: 1.4rem;
-    color: var(--primary-color);
-    margin-right: 10px;
+/* Real-time analysis notice */
+.realtime-notice {
+    color: #2196F3;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: rgba(33, 150, 243, 0.1);
     display: inline-block;
-    width: 20px;
-    text-align: right;
+    margin-top: 10px !important;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
 }
 
 .info-label {
-    margin-left: 10px;
-    font-size: 0.9rem;
-    color: var(--text-color-secondary);
-    font-style: italic;
+    color: #666;
+    font-size: 12px;
+    margin-left: 5px;
 }
 
 .quantum-content ul {

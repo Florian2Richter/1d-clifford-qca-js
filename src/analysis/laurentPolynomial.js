@@ -393,6 +393,30 @@ export function hasOrthogonalStabilizer(initialState) {
 }
 
 /**
+ * Check orthogonality *with* periodic boundary conditions.
+ * We form Sₙ(z) = [X(z)Z(z⁻¹) + Z(z)X(z⁻¹)] mod (x^N - 1)
+ * and verify it's identically zero.
+ *
+ * @param {Array} initialState  – Pauli string in F₂ form
+ * @param {number} N            – chain length
+ * @returns {boolean}           – true iff *all* translates commute
+ */
+export function hasOrthogonalStabilizerPeriodic(initialState, N) {
+  // 1) infinite-chain S(z)
+  const { X, Z } = initialStateToLaurent(initialState);
+  const term1 = X.multiply(Z.substituteInverse());
+  const term2 = Z.multiply(X.substituteInverse());
+  const S_inf = term1.add(term2);
+  
+  // 2) reduce to length-N array mod (x^N - 1)
+  //    laurentToPolynomial folds all exponents mod N
+  const S_bits = laurentToPolynomial(S_inf, N);
+  
+  // 3) check that every coefficient is zero
+  return S_bits.every(b => b === 0);
+}
+
+/**
  * Calculate the greatest common divisor (GCD) of two Laurent polynomials in F2[x±1]
  * @param {LaurentPolynomial} poly1 - First Laurent polynomial
  * @param {LaurentPolynomial} poly2 - Second Laurent polynomial
@@ -559,78 +583,98 @@ export function divideCyclic(dividendArr, divisorArr) {
 }
 
 /**
- * Compute the code distance d for a single-generator 1D cyclic code.
- *
- * Steps:
- *   1) Build d1(x) = gcd(gZ, gX) and d1^N(x) = gcd(d1, x^N−1)
- *   2) Reduce x^N−1 and d1^N(x) to bit arrays
- *   3) Divide to get the residual R(x)
- *   4) Scan all N cyclic shifts of R for the smallest nonzero Hamming weight
- *
- * @param {Array} initialState  – Pauli symplectic array [[z_i,x_i],…]
- * @param {number} N            – chain length
- * @returns {number}            – code distance d
+ * Exact division of two LaurentPolynomials in F₂[x], assuming
+ * divisor is monic and divides dividend exactly.
+ * Returns Q(x) such that dividend = Q·divisor.
+ */
+export function laurentDivide(dividend, divisor) {
+  // Make working copies
+  let R = new LaurentPolynomial({ ...dividend.coeffs }, 2);
+  let Q = new LaurentPolynomial({}, 2);
+
+  // Degree of the divisor (highest exponent)
+  const degDiv = Math.max(...Object.keys(divisor.coeffs).map(e => parseInt(e, 10)));
+
+  // While R still has a term of degree ≥ degDiv:
+  while (true) {
+    // Compute current degree of R properly:
+    const expsR = Object.keys(R.coeffs).map(e => parseInt(e, 10));
+    if (expsR.length === 0) break;         // R == 0
+    const degR = Math.max(...expsR);
+    if (degR < degDiv) break;
+
+    // We need to subtract (XOR) divisor·x^(degR−degDiv)
+    const shift = degR - degDiv;
+    const term  = divisor.multiply(
+      LaurentPolynomial.monomial(shift, 1, 2)
+    );
+
+    // XOR it into R:
+    R = R.add(term);
+
+    // Record that factor into Q (also XOR):
+    const old = Q.coeffs[shift] || 0;
+    Q.coeffs[shift] = (old ^ 1);
+    Q.normalize();
+  }
+
+  return Q;
+}
+
+/**
+ * Calculate the code distance d for a single-generator 1D cyclic code.
+ * 
+ * @param {Array} initialState - Array of Pauli operators in F2 representation
+ * @param {number} N - Chain length (periodicity)
+ * @returns {number} - Code distance d
  */
 export function calculateCodeDistance(initialState, N) {
-  // First check if there are any logical qubits
+  // (a) first, how many logicals?
   const k = calculateLogicalQubits(initialState, N);
   if (k === 0) {
-    console.log("No logical qubits, returning code distance 0");
-    return 0;  // No logical qubits means no code distance
+    return 0;   // no logical qubits → no distance
   }
 
-  // 1) extract generator polynomials (assumes these helpers exist)
+  // (b) build the two generator polynomials
   const { X: gX, Z: gZ } = initialStateToLaurent(initialState);
-  console.log("Generator polynomials:", "X =", gX.toString(), "Z =", gZ.toString());
-  
-  const d1 = gcd(gZ, gX);
-  console.log("GCD d1(x) =", d1.toString());
-  
-  const d1N = gcdWithPeriodicity(d1, N);
-  console.log("Periodicity-imposed GCD d1N(x) =", d1N.toString());
-  
-  // 2) build the two F₂-arrays
-  //   x^N−1 mod 2  is 1 + x^N, i.e. bits[0]=1, bits[N-1]=1
-  const xNminus1 = Array(N).fill(0);
-  xNminus1[0] = 1;
-  xNminus1[N-1] = 1;
-  
-  const divisorArr = laurentToPolynomial(d1N, N);
-  console.log("Divisor array:", divisorArr);
-  
-  // Special case: If all X or all Z (meaning one is 0)
-  if (Object.keys(gX.coeffs).length === 0 || Object.keys(gZ.coeffs).length === 0) {
-    // For a single generator, we need a special case
-    // The minimum weight codeword is just x^k + 1 where k is the degree of non-zero generator
-    if (Object.keys(gX.coeffs).length > 0) {
-      return 2; // X-only generator has distance 2 (for cyclic codes)
-    }
-    if (Object.keys(gZ.coeffs).length > 0) {
-      return 2; // Z-only generator has distance 2 (for cyclic codes)
-    }
-    return 0; // Both zero - trivial code
+
+  // --- Z-distance: weight of normalized gX(x) ---
+  const expsX = Object.keys(gX.coeffs).map(e => parseInt(e,10));
+  let dZ;
+  if (expsX.length === 0) {
+    dZ = N+1;     // no X-checks → infinite Z-distance
+  } else {
+    const minExp = Math.min(...expsX);
+    // normalized exponents
+    dZ = expsX.length;
   }
 
-  // 3) get the residual R(x) = (x^N−1) / d1^N(x)
-  const residual = divideCyclic(xNminus1, divisorArr);
-  console.log("Residual polynomial R(x) =", residual);
-  
-  // 4) scan cyclic shifts of R for minimal nonzero weight
-  let minWeight = Infinity;
-  for (let shift = 0; shift < N; shift++) {
-    // count ones in R rotated by `shift`
+  // --- X-distance: residual scan ---
+  // 1) compute the finite-chain Smith factor
+  const d1   = gcd(gZ, gX);
+  const d1N  = gcdWithPeriodicity(d1, N);
+
+  // 2) form the true dividend x^N - 1 as a LaurentPolynomial
+  const dividend = new LaurentPolynomial({ [N]:1, [0]:1 }, 2);
+
+  // 3) exact polynomial quotient = (x^N-1)/d1N
+  const residualPoly = laurentDivide(dividend, d1N);
+
+  // 4) reduce to an N-bit array
+  const Rbits = laurentToPolynomial(residualPoly, N);
+
+  // 5) scan all shifts for minimum nonzero weight
+  let dX = Infinity;
+  for (let s = 0; s < N; s++) {
     let w = 0;
     for (let i = 0; i < N; i++) {
-      if (residual[(i + shift) % N] === 1) w++;
+      if (Rbits[(i + s) % N] === 1) w++;
     }
-    if (w > 0 && w < minWeight) {
-      minWeight = w;
-      console.log(`Found new minimum weight ${w} at shift ${shift}`);
-      // distance-1 is the absolute minimum; we can stop early
-      if (minWeight === 1) break;
-    }
+    if (w > 0 && w < dX) dX = w;
+    if (dX === 1) break;
   }
-  
-  console.log("Final minimum weight:", minWeight);
-  return minWeight === Infinity ? 0 : minWeight;
+  if (dX === Infinity) dX = 0;
+
+  // (c) final quantum distance is the smaller of the two
+  return Math.min(dZ, dX);
 } 

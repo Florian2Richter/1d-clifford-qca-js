@@ -41,6 +41,9 @@ export function App() {
         ruleMatrix ? ruleMatrix.map(row => [...row]) : DEFAULT_RULE_MATRIX.map(row => [...row])
     );
     
+    // Add state to hold the current simulation state for analysis
+    const [currentSimulationState, setCurrentSimulationState] = React.useState(null);
+    
     // Track mathematical properties for Quantum Pane
     const [mathProperties, setMathProperties] = React.useState({
         invertible: false,
@@ -91,6 +94,13 @@ export function App() {
         spacetimeDiagramRef,
         renderTimeRef
     });
+    
+    // Add an effect to update the current simulation state when history or currentStep changes
+    React.useEffect(() => {
+        if (history && history.length > 0 && currentStep < history.length) {
+            setCurrentSimulationState(history[currentStep]);
+        }
+    }, [history, currentStep]);
     
     const handleRunSimulation = (params) => {
         // If we're resuming a paused simulation, just turn isRunning back on
@@ -154,6 +164,9 @@ export function App() {
         setAnalysisRuleMatrix(ruleMatrix.map(row => [...row]));
         setAnalysisOperators([{ type: 'X', position: 50 }]);
         setAnalysisLatticeSize(100);
+        
+        // Clear the current simulation state
+        setCurrentSimulationState(null);
         
         // Mark that the simulation has been reset, re-enabling controls
         setHasSimulationStarted(false);
@@ -238,7 +251,7 @@ export function App() {
                                     {analysisRuleMatrix && (
                                         <MathematicalAnalysis 
                                             ruleMatrix={analysisRuleMatrix}
-                                            initialState={null}
+                                            initialState={hasSimulationStarted ? currentSimulationState : null}
                                             operators={analysisOperators}
                                             latticeSize={analysisLatticeSize}
                                             onPropertiesChange={setMathProperties}
@@ -256,6 +269,9 @@ export function App() {
                                             <p><strong>N</strong> = {analysisLatticeSize} <span className="info-label">Number of Qubits in a row</span></p>
                                             <p><strong>k</strong> = {mathProperties.logicalQubits} <span className="info-label">Number of logical qubits</span></p>
                                             <p><strong>d</strong> = {mathProperties.codeDistance} <span className="info-label">Code distance</span></p>
+                                            {isRunning && (
+                                                <p className="realtime-notice">Showing real-time analysis at step {currentStep}</p>
+                                            )}
                                         </div>
                                     </div>
                                 ) : (
