@@ -9,7 +9,8 @@ export function useSimulationAnimation({
     setCurrentStep,
     setStepTime,
     timeoutRef,
-    setIsRunning
+    setIsRunning,
+    setAnalysisStepTrigger
 }) {
     // Incremental animation effect
     useEffect(() => {
@@ -34,11 +35,18 @@ export function useSimulationAnimation({
             const timeTaken = endTime - startTime;
             
             // Store the raw millisecond value without formatting
-            setStepTime(timeTaken);
+            if (typeof setStepTime === 'function') {
+                setStepTime(timeTaken);
+            }
             
             // Update history with the new state (using functional update to avoid dependency)
             setHistory(prevHistory => [...prevHistory, newState]);
             setCurrentStep(prevStep => prevStep + 1);
+            
+            // Trigger analysis for this simulation step
+            if (typeof setAnalysisStepTrigger === 'function') {
+                setAnalysisStepTrigger(prev => prev + 1);
+            }
             
         }, 10); // Changed back to 10ms since rendering is now around 5ms
         
@@ -50,5 +58,5 @@ export function useSimulationAnimation({
             }
         };
     }, [isRunning, currentStep, qca, simulationParams, 
-        setHistory, setCurrentStep, setStepTime, timeoutRef, setIsRunning]);
+        setHistory, setCurrentStep, setStepTime, timeoutRef, setIsRunning, setAnalysisStepTrigger]);
 } 

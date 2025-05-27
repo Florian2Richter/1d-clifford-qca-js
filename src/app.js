@@ -41,8 +41,8 @@ export function App() {
         ruleMatrix ? ruleMatrix.map(row => [...row]) : DEFAULT_RULE_MATRIX.map(row => [...row])
     );
     
-    // Add state to hold the current simulation state for analysis
-    const [currentSimulationState, setCurrentSimulationState] = React.useState(null);
+    // Add explicit analysis step trigger
+    const [analysisStepTrigger, setAnalysisStepTrigger] = React.useState(0);
     
     // Track mathematical properties for Quantum Pane
     const [mathProperties, setMathProperties] = React.useState({
@@ -50,7 +50,8 @@ export function App() {
         symplectic: false,
         orthogonalStabilizer: false,
         logicalQubits: 0,
-        codeDistance: 0
+        codeDistance: 0,
+        codeDistanceTrajectory: []
     });
 
     // Initialize QCA when rule matrix changes
@@ -84,7 +85,8 @@ export function App() {
         setCurrentStep,
         setStepTime,
         timeoutRef,
-        setIsRunning
+        setIsRunning,
+        setAnalysisStepTrigger
     });
     
     // Render visualization when history changes
@@ -94,13 +96,6 @@ export function App() {
         spacetimeDiagramRef,
         renderTimeRef
     });
-    
-    // Add an effect to update the current simulation state when history or currentStep changes
-    React.useEffect(() => {
-        if (history && history.length > 0 && currentStep < history.length) {
-            setCurrentSimulationState(history[currentStep]);
-        }
-    }, [history, currentStep]);
     
     const handleRunSimulation = (params) => {
         // If we're resuming a paused simulation, just turn isRunning back on
@@ -165,8 +160,14 @@ export function App() {
         setAnalysisOperators([{ type: 'X', position: 50 }]);
         setAnalysisLatticeSize(100);
         
-        // Clear the current simulation state
-        setCurrentSimulationState(null);
+        // Reset the analysis step trigger to clear simulation-step details
+        setAnalysisStepTrigger(0);
+        
+        // Reset math properties including trajectory
+        setMathProperties(prev => ({
+            ...prev,
+            codeDistanceTrajectory: []
+        }));
         
         // Mark that the simulation has been reset, re-enabling controls
         setHasSimulationStarted(false);
@@ -251,9 +252,10 @@ export function App() {
                                     {analysisRuleMatrix && (
                                         <MathematicalAnalysis 
                                             ruleMatrix={analysisRuleMatrix}
-                                            initialState={hasSimulationStarted ? currentSimulationState : null}
+                                            pauliArray={hasSimulationStarted && history && history.length > 0 && currentStep < history.length ? history[currentStep] : null}
                                             operators={analysisOperators}
                                             latticeSize={analysisLatticeSize}
+                                            analysisStepTrigger={analysisStepTrigger}
                                             onPropertiesChange={setMathProperties}
                                         />
                                     )}
@@ -269,10 +271,90 @@ export function App() {
                                             <p><strong>N</strong> = {analysisLatticeSize} <span className="info-label">Number of Qubits in a row</span></p>
                                             <p><strong>k</strong> = {mathProperties.logicalQubits} <span className="info-label">Number of logical qubits</span></p>
                                             <p><strong>d</strong> = {mathProperties.codeDistance} <span className="info-label">Code distance</span></p>
-                                            {isRunning && (
-                                                <p className="realtime-notice">Showing real-time analysis at step {currentStep}</p>
-                                            )}
                                         </div>
+                                        {mathProperties.codeDistanceTrajectory && mathProperties.codeDistanceTrajectory.length > 1 && (
+                                            <div className="trajectory-chart">
+                                                <h4>Code Distance Trajectory</h4>
+                                                <svg width="300" height="120">
+                                                    {/* Chart background grid */}
+                                                    <defs>
+                                                        <pattern id="grid" width="15" height="15" patternUnits="userSpaceOnUse">
+                                                            <path d="M 15 0 L 0 0 0 15" fill="none" stroke="#f1f3f4" strokeWidth="0.5"/>
+                                                        </pattern>
+                                                        <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                            <stop offset="0%" style={{stopColor: '#f8f9fa', stopOpacity: 1}} />
+                                                            <stop offset="100%" style={{stopColor: '#ffffff', stopOpacity: 1}} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <rect width="300" height="120" fill="url(#chartGradient)" />
+                                                    <rect width="300" height="120" fill="url(#grid)" />
+                                                    
+                                                    {/* Chart content */}
+                                                    {(() => {
+                                                        const trajectory = mathProperties.codeDistanceTrajectory;
+                                                        const maxDistance = Math.max(...trajectory.map(p => p.distance), 1);
+                                                        const minDistance = Math.min(...trajectory.map(p => p.distance), 0);
+                                                        const range = Math.max(maxDistance - minDistance, 1);
+                                                        
+                                                        const points = trajectory.map((point, index) => {
+                                                            const x = 30 + (index / Math.max(trajectory.length - 1, 1)) * 240;
+                                                            const y = 20 + (1 - (point.distance - minDistance) / range) * 70;
+                                                            return `${x},${y}`;
+                                                        }).join(' ');
+                                                        
+                                                        return (
+                                                            <>
+                                                                {/* Chart line */}
+                                                                <polyline
+                                                                    points={points}
+                                                                    className="chart-line"
+                                                                    stroke="#2563eb"
+                                                                    strokeWidth="2.5"
+                                                                    fill="none"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                />
+                                                                
+                                                                {/* Data points - only show every nth point for long trajectories */}
+                                                                {trajectory.map((point, index) => {
+                                                                    // Show all points if trajectory is short, or every nth point if long
+                                                                    const showPoint = trajectory.length <= 50 || index % Math.ceil(trajectory.length / 50) === 0 || index === trajectory.length - 1;
+                                                                    if (!showPoint) return null;
+                                                                    
+                                                                    const x = 30 + (index / Math.max(trajectory.length - 1, 1)) * 240;
+                                                                    const y = 20 + (1 - (point.distance - minDistance) / range) * 70;
+                                                                    return (
+                                                                        <circle
+                                                                            key={index}
+                                                                            cx={x}
+                                                                            cy={y}
+                                                                            r="3"
+                                                                            className="chart-point"
+                                                                            fill="#2563eb"
+                                                                            stroke="#ffffff"
+                                                                            strokeWidth="1.5"
+                                                                        />
+                                                                    );
+                                                                })}
+                                                                
+                                                                {/* Y-axis labels */}
+                                                                <text x="20" y="25" className="chart-label" fontSize="10" fill="#6b7280" textAnchor="end">{maxDistance}</text>
+                                                                <text x="20" y="95" className="chart-label" fontSize="10" fill="#6b7280" textAnchor="end">{minDistance}</text>
+                                                                
+                                                                {/* Axis lines */}
+                                                                <line x1="25" y1="20" x2="25" y2="95" stroke="#e5e7eb" strokeWidth="1"/>
+                                                                <line x1="25" y1="95" x2="275" y2="95" stroke="#e5e7eb" strokeWidth="1"/>
+                                                                
+                                                                {/* X-axis labels */}
+                                                                <text x="30" y="110" className="chart-label" fontSize="9" fill="#6b7280" textAnchor="start">0</text>
+                                                                <text x="270" y="110" className="chart-label" fontSize="9" fill="#6b7280" textAnchor="end">{trajectory.length - 1}</text>
+                                                                <text x="150" y="110" className="chart-title" fontSize="11" fill="#374151" textAnchor="middle">Simulation Steps</text>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="message-box">

@@ -44,7 +44,7 @@ const PAULI = {
 /**
  * Mathematical Analysis component
  */
-export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latticeSize, onPropertiesChange }) {
+export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, latticeSize, analysisStepTrigger, onPropertiesChange }) {
     const [invertible, setInvertible] = useState(false);
     const [symplectic, setSymplectic] = useState(false);
     const [orthogonalStabilizer, setOrthogonalStabilizer] = useState(false);
@@ -54,14 +54,15 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
     const [symplecticDetails, setSymplecticDetails] = useState('');
     const [stabilizerDetails, setStabilizerDetails] = useState('');
     
+    // Add state for code distance trajectory
+    const [codeDistanceTrajectory, setCodeDistanceTrajectory] = useState([]);
+    
     // Keep the state but don't display it
     const [logicalQubitsDetails, setLogicalQubitsDetails] = useState('');
 
-    // Create state array if needed - memoized for performance
-    const state = useMemo(() => {
-        console.log("Recalculating state from operators", operators);
-        // If initialState is directly provided (e.g., current simulation state), use it
-        if (initialState) return initialState;
+    // Create synthetic state array from operators (for initial configuration analysis)
+    const syntheticState = useMemo(() => {
+        console.log("Building synthetic state from operators", operators);
         if (!operators || !latticeSize) return null;
         
         // Create state array
@@ -81,13 +82,14 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
         });
         
         return newState;
-    }, [initialState, operators, latticeSize]);
+    }, [operators, latticeSize]);
 
     // Analyze invertibility when rule matrix changes
     useEffect(() => {
         if (!ruleMatrix || ruleMatrix.length !== 2) return;
         
         try {
+            console.log("Matrix analysis effect running");
             // Check invertibility
             const isInv = isInvertible(ruleMatrix);
             setInvertible(isInv);
@@ -110,37 +112,39 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
         }
     }, [ruleMatrix]);
 
-    // Analyze stabilizer orthogonality when state changes
+    // Analyze stabilizer orthogonality for initial configuration when synthetic state changes
     useEffect(() => {
-        console.log("Orthogonal stabilizer effect running, state:", state);
-        if (!state) return;
+        console.log("Initial configuration analysis effect running, state:", syntheticState);
+        if (!syntheticState) return;
         
         try {
             // Check for orthogonal stabilizer with periodic boundary conditions
-            const isOrthogonal = hasOrthogonalStabilizerPeriodic(state, latticeSize);
+            const isOrthogonal = hasOrthogonalStabilizerPeriodic(syntheticState, latticeSize);
             console.log("Is orthogonal:", isOrthogonal);
             setOrthogonalStabilizer(isOrthogonal);
             
             // Get Laurent polynomials for details
-            const { X, Z } = initialStateToLaurent(state);
+            const { X, Z } = initialStateToLaurent(syntheticState);
+            const xString = X && typeof X.toString === 'function' ? X.toString() : '0';
+            const zString = Z && typeof Z.toString === 'function' ? Z.toString() : '0';
             setStabilizerDetails(
-                `X(z) = ${X.toString()}\nZ(z) = ${Z.toString()}\n` + 
+                `X(z) = ${xString}\nZ(z) = ${zString}\n` + 
                 (isOrthogonal ? 
                     "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0" : 
                     "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0")
             );
 
-            // Calculate logical qubits and code distance if the stabilizer is orthogonal
+            // Calculate logical qubits and code distance for initial configuration
             if (isOrthogonal && latticeSize) {
-                const k = calculateLogicalQubits(state, latticeSize);
+                const k = calculateLogicalQubits(syntheticState, latticeSize);
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
                 // Only calculate code distance if there are logical qubits
                 let d = 0;
                 if (k > 0) {
-                    d = calculateCodeDistance(state, latticeSize);
-                    console.log("Code distance calculated:", d);
+                    d = calculateCodeDistance(syntheticState, latticeSize);
+                    console.log("Initial configuration - Code distance calculated:", d);
                 }
                 setCodeDistance(d);
             } else {
@@ -149,11 +153,62 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
                 setLogicalQubitsDetails('Cannot calculate logical qubits (non-orthogonal stabilizer)');
             }
         } catch (error) {
-            console.error("Error in stabilizer analysis:", error);
+            console.error("Error in initial configuration analysis:", error);
             setStabilizerDetails('Error calculating Laurent polynomials');
             setLogicalQubitsDetails('Error calculating logical qubits');
         }
-    }, [state, initialState, latticeSize]); // Add initialState as a dependency
+    }, [syntheticState, latticeSize]);
+
+    // Simulation-step analysis (triggered by analysisStepTrigger)
+    useEffect(() => {
+        if (!pauliArray || !latticeSize || !analysisStepTrigger) {
+            // Clear trajectory when no active simulation
+            setCodeDistanceTrajectory([]);
+            return;
+        }
+        
+        console.log("Simulation-step analysis triggered:", analysisStepTrigger, "for pauliArray:", pauliArray);
+        
+        try {
+            // Analyze the current simulation state
+            const isOrthogonal = hasOrthogonalStabilizerPeriodic(pauliArray, latticeSize);
+            
+            // Only update logical qubits and code distance for simulation steps
+            if (isOrthogonal && latticeSize) {
+                const k = calculateLogicalQubits(pauliArray, latticeSize);
+                setLogicalQubits(k);
+                setLogicalQubitsDetails(`k = ${k} logical qubits`);
+                
+                // Calculate code distance for current simulation state
+                let d = 0;
+                if (k > 0) {
+                    d = calculateCodeDistance(pauliArray, latticeSize);
+                    console.log("Simulation step - Code distance calculated:", d);
+                }
+                setCodeDistance(d);
+                
+                // Update code distance trajectory
+                setCodeDistanceTrajectory(prev => {
+                    const newTrajectory = [...prev, { step: analysisStepTrigger, distance: d }];
+                    // Keep full trajectory from the first time step
+                    return newTrajectory;
+                });
+            } else {
+                setLogicalQubits(0);
+                setCodeDistance(0);
+                setLogicalQubitsDetails('Cannot calculate logical qubits (non-orthogonal stabilizer)');
+                
+                // Update trajectory with distance 0
+                setCodeDistanceTrajectory(prev => {
+                    const newTrajectory = [...prev, { step: analysisStepTrigger, distance: 0 }];
+                    return newTrajectory;
+                });
+            }
+        } catch (error) {
+            console.error("Error in simulation-step analysis:", error);
+            setLogicalQubitsDetails('Error calculating logical qubits');
+        }
+    }, [analysisStepTrigger, pauliArray, latticeSize]);
 
     // Notify parent component when properties change
     useEffect(() => {
@@ -163,10 +218,11 @@ export function MathematicalAnalysis({ ruleMatrix, initialState, operators, latt
                 symplectic,
                 orthogonalStabilizer,
                 logicalQubits,
-                codeDistance
+                codeDistance,
+                codeDistanceTrajectory
             });
         }
-    }, [invertible, symplectic, orthogonalStabilizer, logicalQubits, codeDistance, onPropertiesChange]);
+    }, [invertible, symplectic, orthogonalStabilizer, logicalQubits, codeDistance, codeDistanceTrajectory, onPropertiesChange]);
 
     return (
         <div className="mathematical-analysis">

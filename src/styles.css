@@ -736,6 +736,69 @@ button:disabled {
 }
 
 .logical-qubits-info em {
+    color: var(--text-color-secondary);
+    font-style: italic;
+}
+
+/* Trajectory Chart Styles */
+.trajectory-chart {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.trajectory-chart h4 {
+    margin: 0 0 10px 0;
     font-size: 0.9rem;
-    color: #666;
+    font-weight: 500;
+    color: var(--text-color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.trajectory-chart svg {
+    display: block;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.trajectory-chart .chart-line {
+    stroke: #2563eb;
+    stroke-width: 2.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 1px 2px rgba(37, 99, 235, 0.2));
+}
+
+.trajectory-chart .chart-point {
+    fill: #2563eb;
+    stroke: #ffffff;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.trajectory-chart .chart-point:hover {
+    fill: #1d4ed8;
+    r: 4;
+}
+
+.trajectory-chart .chart-label {
+    font-family: 'Roboto', sans-serif;
+    font-size: 10px;
+    fill: #6b7280;
+    font-weight: 500;
+}
+
+.trajectory-chart .chart-title {
+    font-family: 'Roboto', sans-serif;
+    font-size: 11px;
+    fill: #374151;
+    font-weight: 500;
+    text-anchor: middle;
 } 
