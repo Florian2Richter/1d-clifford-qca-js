@@ -1,33 +1,16 @@
 import * as d3 from 'd3';
 import { getPauliLabel, getPauliColor } from '../simulation/clifford.js';
 
-// Keep track of rendering state for spacetime diagram
+// Global state for canvas rendering
 let canvasContext = null;
 let canvasElement = null;
 let currentTimeStep = 0;
 let cellSize = 0;
 let lastLatticeSize = 0;
 
-/**
- * Calculate the appropriate cell size for visualization
- */
 function calculateCellSize(containerWidth, containerHeight, latticeSize, minSize = 1) {
-  return Math.max(minSize, Math.min(
-    Math.floor(containerWidth / latticeSize),
-    Math.floor(containerHeight / 20)
-  ));
-}
-
-/**
- * Reset the spacetime diagram rendering state
- * (Call this when switching simulations)
- */
-export function resetSpacetimeDiagram() {
-  canvasContext    = null;
-  canvasElement    = null;
-  currentTimeStep  = 0;
-  cellSize         = 0;
-  lastLatticeSize  = 0;
+  const maxCellSize = Math.floor(containerWidth / latticeSize);
+  return Math.max(maxCellSize, minSize);
 }
 
 /**
@@ -170,7 +153,6 @@ export function renderSpacetimeDiagram(elementId, history, cellSizeParam = null)
   }
 }
 
-
 /**
  * Render the current state of the automaton using a direct canvas element
  */
@@ -219,26 +201,26 @@ export function renderCurrentState(elId, state, sizeParam = null) {
     // If not available, calculate it the same way
     const startX = window.currentVisualizationStartX !== undefined 
         ? window.currentVisualizationStartX 
-        : Math.floor((width - (n * s)) / 2);
+        : Math.floor((containerWidth - n * s) / 2);
     
-    const startY = Math.floor((height - s) / 2); // Center vertically
-    
-    // Draw cells
-    for (let x = 0; x < n; x++) {
-        const p = state[x];
-        const label = getPauliLabel(p);
-        const color = getPauliColor(p);
+    for (let i = 0; i < n; i++) {
+        // Skip cells that are beyond the canvas width
+        if ((startX + i * s) >= width) continue;
+        
+        const pauli = state[i];
+        const label = getPauliLabel(pauli);
+        const color = getPauliColor(pauli);
         
         ctx.fillStyle = color;
-        ctx.globalAlpha = label === 'I' ? 0.3 : 0.9;
-        ctx.fillRect(startX + (x * s), startY, s, s);
+        ctx.globalAlpha = (label === 'I' ? 0.3 : 0.9);
+        ctx.fillRect(startX + i * s, 0, s, height);
         
         // Only draw cell borders if lattice size is less than 250
         if (drawGridLines) {
             ctx.globalAlpha = 1;
             ctx.strokeStyle = '#ddd';
             ctx.lineWidth = 0.5;
-            ctx.strokeRect(startX + (x * s), startY, s, s);
+            ctx.strokeRect(startX + i * s, 0, s, height);
         }
     }
 }

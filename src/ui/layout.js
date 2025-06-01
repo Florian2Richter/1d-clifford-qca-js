@@ -1,19 +1,19 @@
 /**
- * Main layout components for the 1D Clifford QCA simulator
+ * Layout components for the QCA simulator interface
  * 
- * This module provides the main layout structure for the application.
+ * Provides reusable layout components with collapsible sections
  */
 import React, { useState } from 'react';
 
 /**
- * Main application layout
+ * Main layout wrapper for the entire application
  * 
  * @param {Object} props - Component properties
- * @param {React.ReactNode} props.children - Child components
+ * @param {React.ReactNode} props.children - Child components to render
  */
 export function MainLayout({ children }) {
     return (
-        <div className="main-layout" style={{ width: '100%', boxSizing: 'border-box' }}>
+        <div className="main-layout">
             <header className="app-header">
                 <div className="header-content">
                     <h1>
@@ -36,18 +36,19 @@ export function MainLayout({ children }) {
 }
 
 /**
- * Section component with optional collapsible behavior
+ * Collapsible section component
  * 
  * @param {Object} props - Component properties
  * @param {string} props.title - Section title
- * @param {React.ReactNode} props.children - Child components
- * @param {boolean} props.collapsible - Whether the section can be collapsed
- * @param {boolean} props.defaultExpanded - Whether the section is expanded by default
+ * @param {React.ReactNode} props.children - Section content
+ * @param {boolean} props.collapsible - Whether section can be collapsed
+ * @param {boolean} props.defaultExpanded - Initial expanded state
+ * @param {Object} props.style - Additional CSS styles
  */
-export function Section({ 
-    title, 
-    children, 
-    collapsible = false, 
+export function Section({
+    title,
+    children,
+    collapsible = false,
     defaultExpanded = true,
     style = {}
 }) {
@@ -58,7 +59,7 @@ export function Section({
             setIsExpanded(!isExpanded);
         }
     };
-    
+
     return (
         <section className="app-section" style={style}>
             <h2 
@@ -96,86 +97,6 @@ export function Section({
                 {children}
             </div>
         </section>
-    );
-}
-
-/**
- * Two-column layout for controls and visualization
- * 
- * @param {Object} props - Component properties
- * @param {React.ReactNode} props.leftColumn - Content for left column
- * @param {React.ReactNode} props.rightColumn - Content for right column
- */
-export function TwoColumnLayout({ leftColumn, rightColumn }) {
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    
-    return (
-        <div className="two-column-layout" style={{ 
-            width: '100%',
-            gridTemplateColumns: sidebarCollapsed ? '60px 1fr' : '350px 1fr'
-        }}>
-            <div className="left-column" style={{ 
-                transition: 'width 0.3s',
-                position: 'relative'
-            }}>
-                <div 
-                    style={{
-                        position: 'absolute',
-                        top: '10px',
-                        right: '-15px',
-                        width: '30px',
-                        height: '30px',
-                        background: 'white',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
-                        zIndex: 100,
-                        transition: 'transform 0.3s'
-                    }}
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                >
-                    <span 
-                        style={{ 
-                            transition: 'transform 0.3s',
-                            transform: sidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)',
-                            fontSize: '1rem'
-                        }}
-                    >
-                        ◀
-                    </span>
-                </div>
-                
-                <div style={{ 
-                    display: sidebarCollapsed ? 'none' : 'block',
-                    opacity: sidebarCollapsed ? 0 : 1,
-                    transition: 'opacity 0.3s'
-                }}>
-                    {leftColumn}
-                </div>
-                
-                {sidebarCollapsed && (
-                    <div style={{ 
-                        writingMode: 'vertical-rl',
-                        textOrientation: 'mixed',
-                        height: '100%',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        fontSize: '1.2rem',
-                        color: 'var(--text-color-secondary)',
-                        padding: '20px 0'
-                    }}>
-                        Controls
-                    </div>
-                )}
-            </div>
-            
-            <div className="right-column">
-                {rightColumn}
-            </div>
-        </div>
     );
 }
 

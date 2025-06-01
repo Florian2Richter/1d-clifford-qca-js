@@ -7,7 +7,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     isInvertible, 
     isSymplecticRuleMatrix, 
-    hasOrthogonalStabilizer,
     hasOrthogonalStabilizerPeriodic,
     determinant,
     ruleMatrixToLaurent,

@@ -169,18 +169,6 @@ export class LaurentPolynomial {
 }
 
 /**
- * Creates a 2x2 matrix of Laurent polynomials
- * @param {Array} entries - 4 Laurent polynomials [a, b, c, d] representing [[a, b], [c, d]]
- * @returns {Array} - 2x2 matrix of Laurent polynomials
- */
-export function createLaurentMatrix(entries) {
-    return [
-        [entries[0], entries[1]],
-        [entries[2], entries[3]]
-    ];
-}
-
-/**
  * Calculates the determinant of a 2x2 matrix of Laurent polynomials
  * @param {Array} matrix - 2x2 matrix of Laurent polynomials
  * @returns {LaurentPolynomial} - Determinant as a Laurent polynomial
@@ -375,24 +363,6 @@ export function initialStateToLaurent(initialState) {
 }
 
 /**
- * Check if the initial state generates orthogonal stabilizers
- * S(z) = X(z)Z(z^-1) + Z(z)X(z^-1) mod 2 = 0
- * @param {Array} initialState - Array of Pauli operators in F2 representation
- * @returns {boolean} - True if S(z) = 0
- */
-export function hasOrthogonalStabilizer(initialState) {
-    const { X, Z } = initialStateToLaurent(initialState);
-    
-    // Calculate S(z) = X(z)Z(z^-1) + Z(z)X(z^-1) mod 2
-    const term1 = X.multiply(Z.substituteInverse());
-    const term2 = Z.multiply(X.substituteInverse());
-    const S = term1.add(term2);
-    
-    // Check if S(z) = 0
-    return Object.keys(S.coeffs).length === 0;
-}
-
-/**
  * Check orthogonality *with* periodic boundary conditions.
  * We form Sₙ(z) = [X(z)Z(z⁻¹) + Z(z)X(z⁻¹)] mod (x^N - 1)
  * and verify it's identically zero.
@@ -549,37 +519,6 @@ export function laurentToPolynomial(poly, N) {
  */
 export function hammingWeight(bits) {
   return bits.reduce((sum, b) => sum + (b === 1 ? 1 : 0), 0);
-}
-
-/**
- * Perform cyclic "division" of (x^N−1) by divisorArr in F₂[x]/(x^N−1).
- * Returns the quotient, which is the residual R(x).
- *
- * @param {number[]} dividendArr  – array for x^N−1 (should be [1,0,0…,0,1])
- * @param {number[]} divisorArr   – array for d1^N(x)
- * @returns {number[]}            – residual quotient R
- */
-export function divideCyclic(dividendArr, divisorArr) {
-  const N = dividendArr.length;
-  // Copy dividend into R
-  const R = dividendArr.slice();
-
-  // Long division: for i from high→low, if divisorArr[i] and R[i] both 1,
-  // xor (shifted) divisorArr into R so as to eliminate R[i].
-  for (let i = N - 1; i >= 0; i--) {
-    if (divisorArr[i] === 1 && R[i] === 1) {
-      for (let j = 0; j < N; j++) {
-        if (divisorArr[j] === 1) {
-          // Align divisor's degree-j term to position i
-          const pos = (j + (i - (N - 1)) + N) % N;
-          R[pos] ^= 1;
-        }
-      }
-    }
-  }
-
-  // In the cyclic quotient ring this R is the quotient (residual).
-  return R;
 }
 
 /**

@@ -30,19 +30,6 @@ export const PAULI_COLORS = {
     'Y': '#F4B400'  // Google yellow
 };
 
-// Secondary color palette for highlights and effects
-export const SECONDARY_COLORS = {
-    background: '#FAFAFA',
-    highlight: '#4285F4',
-    accent: '#0F9D58',
-    text: {
-        primary: '#212121',
-        secondary: '#757575',
-        disabled: '#BDBDBD'
-    },
-    divider: '#EEEEEE'
-};
-
 /**
  * Multiply two Pauli operators in F2 representation
  * 
@@ -99,14 +86,4 @@ export function pauliStringToF2(pauliString) {
             default: throw new Error(`Invalid Pauli operator: ${char}`);
         }
     });
-}
-
-/**
- * Convert F2 array to string representation
- * 
- * @param {Array} f2Array - Array of Pauli operators in F2 representation
- * @returns {string} - String of Pauli operators
- */
-export function f2ToPauliString(f2Array) {
-    return f2Array.map(pauli => getPauliLabel(pauli)).join('');
 } 
