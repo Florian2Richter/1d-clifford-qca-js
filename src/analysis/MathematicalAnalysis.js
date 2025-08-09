@@ -133,36 +133,11 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             const xString = X && typeof X.toString === 'function' ? X.toString() : '0';
             const zString = Z && typeof Z.toString === 'function' ? Z.toString() : '0';
             
-            // Get detailed code analysis if orthogonal
+            // Simplified display for orthogonal stabilizer
             let detailsText = `Generators:\nX(z) = ${xString}\nZ(z) = ${zString}\n\n`;
             
             if (isOrthogonal) {
-                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0\n\n";
-                
-                // Get detailed logical operator analysis
-                const codeAnalysis = calculateCodeDistanceAndLogicals(syntheticState, latticeSize);
-                if (codeAnalysis.logicalQubits > 0) {
-                    detailsText += `Code: [${latticeSize}, ${codeAnalysis.logicalQubits}, ${codeAnalysis.distance}]\n\n`;
-                    
-                    detailsText += `Canonical Seeds:\n`;
-                    detailsText += `RZ(x) = ${codeAnalysis.canonicalZSeed.polynomial.toString()}\n`;
-                    detailsText += `RX(x) = ${codeAnalysis.canonicalXSeed.polynomial.toString()}\n\n`;
-                    
-                    if (codeAnalysis.logicalZOperators.length > 0) {
-                        detailsText += `Logical Z operators:\n`;
-                        codeAnalysis.logicalZOperators.forEach((op, i) => {
-                            detailsText += `ℓZ${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
-                        });
-                        detailsText += `\n`;
-                    }
-                    
-                    if (codeAnalysis.logicalXOperators.length > 0) {
-                        detailsText += `Logical X operators:\n`;
-                        codeAnalysis.logicalXOperators.forEach((op, i) => {
-                            detailsText += `ℓX${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
-                        });
-                    }
-                }
+                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0";
             } else {
                 detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
             }
@@ -237,32 +212,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             let detailsText = `Step ${analysisStepTrigger} Generators:\nX(z) = ${xString}\nZ(z) = ${zString}\n\n`;
             
             if (isOrthogonal) {
-                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0\n\n";
-                
-                // Get detailed logical operator analysis for simulation state
-                const codeAnalysis = calculateCodeDistanceAndLogicals(pauliArray, latticeSize);
-                if (codeAnalysis.logicalQubits > 0) {
-                    detailsText += `Code: [${latticeSize}, ${codeAnalysis.logicalQubits}, ${codeAnalysis.distance}]\n\n`;
-                    
-                    detailsText += `Canonical Seeds:\n`;
-                    detailsText += `RZ(x) = ${codeAnalysis.canonicalZSeed.polynomial.toString()}\n`;
-                    detailsText += `RX(x) = ${codeAnalysis.canonicalXSeed.polynomial.toString()}\n\n`;
-                    
-                    if (codeAnalysis.logicalZOperators.length > 0 && codeAnalysis.logicalZOperators.length <= 5) {
-                        detailsText += `Logical Z operators:\n`;
-                        codeAnalysis.logicalZOperators.forEach((op, i) => {
-                            detailsText += `ℓZ${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
-                        });
-                        detailsText += `\n`;
-                    }
-                    
-                    if (codeAnalysis.logicalXOperators.length > 0 && codeAnalysis.logicalXOperators.length <= 5) {
-                        detailsText += `Logical X operators:\n`;
-                        codeAnalysis.logicalXOperators.forEach((op, i) => {
-                            detailsText += `ℓX${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
-                        });
-                    }
-                }
+                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0";
             } else {
                 detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
             }
