@@ -183,10 +183,16 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         console.log("Initial configuration - Binary analysis:", {
                             binaryDistance,
                             entanglement,
-                            logicalCount: logicals.length
+                            logicalCount: logicals.length,
+                            k: k,
+                            tableauRows: binTableau.length
                         });
                         
+                        // Debug: Always show what we tried to find
+                        console.log(`Searching for ${2*k} logical operators with tableau of ${binTableau.length} rows`);
+                        
                         // Debug: Show actual logical operators
+                        console.log(`DEBUG: About to check if logicals.length (${logicals.length}) > 0`);
                         if (logicals.length > 0) {
                             console.log("=== LOGICAL OPERATORS (Binary Stabilizer Formalism) ===");
                             logicals.forEach((logical, index) => {
@@ -284,10 +290,16 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         console.log("Simulation step - Binary analysis:", {
                             binaryDistance,
                             entanglement,
-                            logicalCount: logicals.length
+                            logicalCount: logicals.length,
+                            k: k,
+                            tableauRows: binTableau.length
                         });
                         
+                        // Debug: Always show what we tried to find
+                        console.log(`Searching for ${2*k} logical operators with tableau of ${binTableau.length} rows`);
+                        
                         // Debug: Show actual logical operators
+                        console.log(`DEBUG: About to check if logicals.length (${logicals.length}) > 0`);
                         if (logicals.length > 0) {
                             console.log(`=== LOGICAL OPERATORS Step ${analysisStepTrigger} (Binary Stabilizer Formalism) ===`);
                             logicals.forEach((logical, index) => {

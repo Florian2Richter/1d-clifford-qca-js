@@ -186,6 +186,7 @@ export function findLogicalOperators(S, k) {
 
     // 2) Centralizer basis: nullspace(SΩ)
     const centralizer = nullspaceMod2(SOmega); // array of Uint8Array(M2)
+    console.log(`DEBUG: Found ${centralizer.length} centralizer vectors for k=${k} (need ${2*k} logicals)`);
 
     // 3) Select a complement to the stabilizer span (size = 2k)
     //    by greedily keeping vectors that increase rank of [S; chosen]
@@ -218,8 +219,10 @@ export function findLogicalOperators(S, k) {
     }
     if (basis.length !== 2*k) {
         // Not enough independent centralizer vectors beyond stabilizers
+        console.log(`DEBUG: Only found ${basis.length} independent vectors, needed ${2*k}`);
         return basis; // or throw, depending on your app
     }
+    console.log(`DEBUG: Found ${basis.length} independent vectors, proceeding with Gram-Schmidt`);
 
     // Helpers
     const sp = (a, b) => {
@@ -267,6 +270,7 @@ export function findLogicalOperators(S, k) {
         logicals.push(Xi.slice(), Zi.slice()); // enforce order [X1,Z1,...]
     }
 
+    console.log(`DEBUG: Completed Gram-Schmidt, returning ${logicals.length} logical operators`);
     return logicals; // length should be 2k
 }
 
