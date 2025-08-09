@@ -11,9 +11,7 @@ import {
     determinant,
     ruleMatrixToLaurent,
     initialStateToLaurent,
-    calculateLogicalQubits,
-    calculateCodeDistance,
-    calculateCodeDistanceAndLogicals
+    calculateLogicalQubits
 } from './laurentPolynomial.js';
 import { polyToBinaryTableau } from './polyToTableau.js';
 import { findLogicalOperators, findDistance, computeEntanglement } from './stabilizerTools.js';
@@ -144,24 +142,19 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             
             setStabilizerDetails(detailsText);
 
-            // Calculate logical qubits and code distance for initial configuration
+            // Calculate logical qubits and binary stabilizer analysis for initial configuration
             if (isOrthogonal && latticeSize) {
                 const k = calculateLogicalQubits(syntheticState, latticeSize);
-                console.log("=== POLYNOMIAL ANALYSIS (Initial) ===");
+                console.log("=== BINARY STABILIZER ANALYSIS (Initial) ===");
                 console.log(`Logical qubits k = ${k}`);
                 
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
-                // Calculate code distance using the original working function
+                // Binary tableau analysis only
                 let d = 0;
                 let entanglement = 0;
                 if (k > 0) {
-                    d = calculateCodeDistance(syntheticState, latticeSize);
-                    console.log(`Polynomial distance d = ${d}`);
-                    console.log("Initial configuration - Code distance calculated:", d);
-                    
-                    // New binary tableau analysis
                     try {
                         const { X, Z } = initialStateToLaurent(syntheticState);
                         const gens = [{ X, Z }]; // Single generator for this state
@@ -180,8 +173,10 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         const binaryDistance = findDistance(binTableau, logicals);
                         entanglement = computeEntanglement(binTableau, logicals);
                         
+                        d = binaryDistance;
+                        
                         console.log("Initial configuration - Binary analysis:", {
-                            binaryDistance,
+                            distance: d,
                             entanglement,
                             logicalCount: logicals.length,
                             k: k,
@@ -254,21 +249,16 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             // Only update logical qubits and code distance for simulation steps
             if (isOrthogonal && latticeSize) {
                 const k = calculateLogicalQubits(pauliArray, latticeSize);
-                console.log(`=== POLYNOMIAL ANALYSIS Step ${analysisStepTrigger} ===`);
+                console.log(`=== BINARY STABILIZER ANALYSIS Step ${analysisStepTrigger} ===`);
                 console.log(`Logical qubits k = ${k}`);
                 
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
-                // Calculate code distance using the original working function
+                // Binary tableau analysis only
                 let d = 0;
                 let entanglement = 0;
                 if (k > 0) {
-                    d = calculateCodeDistance(pauliArray, latticeSize);
-                    console.log(`Polynomial distance d = ${d}`);
-                    console.log("Simulation step - Code distance calculated:", d);
-                    
-                    // New binary tableau analysis
                     try {
                         const { X, Z } = initialStateToLaurent(pauliArray);
                         const gens = [{ X, Z }]; // Single generator for this state
@@ -287,8 +277,10 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         const binaryDistance = findDistance(binTableau, logicals);
                         entanglement = computeEntanglement(binTableau, logicals);
                         
+                        d = binaryDistance;
+                        
                         console.log("Simulation step - Binary analysis:", {
-                            binaryDistance,
+                            distance: d,
                             entanglement,
                             logicalCount: logicals.length,
                             k: k,
