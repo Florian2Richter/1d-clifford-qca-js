@@ -11,7 +11,8 @@ import {
     determinant,
     ruleMatrixToLaurent,
     initialStateToLaurent,
-    calculateLogicalQubits
+    calculateLogicalQubits,
+    LaurentPolynomial
 } from './laurentPolynomial.js';
 import { polyToBinaryTableau } from './polyToTableau.js';
 import { findLogicalOperators, findDistance, computeEntanglement } from './stabilizerTools.js';
@@ -157,8 +158,25 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 if (k > 0) {
                     try {
                         const { X, Z } = initialStateToLaurent(syntheticState);
-                        const gens = [{ X, Z }]; // Single generator for this state
-                        const binTableau = polyToBinaryTableau(gens, latticeSize);
+                        
+                        // Generate ALL cyclic shifts of the seed stabilizer (S0, S1, ..., S_{N-1})
+                        const allStabilizers = [];
+                        for (let shift = 0; shift < latticeSize; shift++) {
+                            // Create shifted versions by multiplying by x^shift
+                            const shiftedX = X.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                            const shiftedZ = Z.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                            allStabilizers.push({ X: shiftedX, Z: shiftedZ });
+                        }
+                        
+                        const binTableau = polyToBinaryTableau(allStabilizers, latticeSize);
+                        
+                        // GUARD: Verify we have the full set of stabilizers
+                        if (binTableau.length !== latticeSize) {
+                            console.error(`CRITICAL: Expected ${latticeSize} stabilizers, got ${binTableau.length}!`);
+                            console.error("This means we're not passing the full cyclic shift set S0, S1, ..., S_{N-1}");
+                        } else {
+                            console.log(`✓ CORRECT: Generated all ${binTableau.length} cyclic shifts (S0, S1, ..., S${latticeSize-1})`);
+                        }
                         
                         // Debug: Show binary tableau
                         console.log("=== BINARY STABILIZER TABLEAU ===");
@@ -175,6 +193,9 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         
                         d = binaryDistance;
                         
+                        // Output key results immediately
+                        console.log(`📊 RESULTS (Initial): Distance=${d}, Entanglement=${entanglement}, Logicals=${logicals.length}/${2*k}`);
+                        
                         console.log("Initial configuration - Binary analysis:", {
                             distance: d,
                             entanglement,
@@ -182,6 +203,9 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                             k: k,
                             tableauRows: binTableau.length
                         });
+                        
+                        // Enhanced entanglement output
+                        console.log(`🔗 ENTANGLEMENT (Initial): ${entanglement}`);
                         
                         // Debug: Always show what we tried to find
                         console.log(`Searching for ${2*k} logical operators with tableau of ${binTableau.length} rows`);
@@ -261,8 +285,25 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 if (k > 0) {
                     try {
                         const { X, Z } = initialStateToLaurent(pauliArray);
-                        const gens = [{ X, Z }]; // Single generator for this state
-                        const binTableau = polyToBinaryTableau(gens, latticeSize);
+                        
+                        // Generate ALL cyclic shifts of the seed stabilizer (S0, S1, ..., S_{N-1})
+                        const allStabilizers = [];
+                        for (let shift = 0; shift < latticeSize; shift++) {
+                            // Create shifted versions by multiplying by x^shift
+                            const shiftedX = X.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                            const shiftedZ = Z.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                            allStabilizers.push({ X: shiftedX, Z: shiftedZ });
+                        }
+                        
+                        const binTableau = polyToBinaryTableau(allStabilizers, latticeSize);
+                        
+                        // GUARD: Verify we have the full set of stabilizers
+                        if (binTableau.length !== latticeSize) {
+                            console.error(`CRITICAL (Step ${analysisStepTrigger}): Expected ${latticeSize} stabilizers, got ${binTableau.length}!`);
+                            console.error("This means we're not passing the full cyclic shift set S0, S1, ..., S_{N-1}");
+                        } else {
+                            console.log(`✓ CORRECT (Step ${analysisStepTrigger}): Generated all ${binTableau.length} cyclic shifts (S0, S1, ..., S${latticeSize-1})`);
+                        }
                         
                         // Debug: Show binary tableau for simulation step
                         console.log(`=== BINARY STABILIZER TABLEAU Step ${analysisStepTrigger} ===`);
@@ -279,6 +320,9 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         
                         d = binaryDistance;
                         
+                        // Output key results immediately
+                        console.log(`📊 RESULTS (Step ${analysisStepTrigger}): Distance=${d}, Entanglement=${entanglement}, Logicals=${logicals.length}/${2*k}`);
+                        
                         console.log("Simulation step - Binary analysis:", {
                             distance: d,
                             entanglement,
@@ -286,6 +330,9 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                             k: k,
                             tableauRows: binTableau.length
                         });
+                        
+                        // Enhanced entanglement output
+                        console.log(`🔗 ENTANGLEMENT (Step ${analysisStepTrigger}): ${entanglement}`);
                         
                         // Debug: Always show what we tried to find
                         console.log(`Searching for ${2*k} logical operators with tableau of ${binTableau.length} rows`);

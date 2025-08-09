@@ -102,8 +102,9 @@ export function nullspaceMod2(tableau) {
             }
             
             if (pivotRow !== -1) {
-                // Compute sum of non-pivot terms in this row
-                for (let col = pivotCol + 1; col < cols; col++) {
+                // Compute sum of all non-pivot terms in this row
+                for (let col = 0; col < cols; col++) {
+                    if (col === pivotCol) continue;
                     sum ^= matrix[pivotRow][col] & basisVector[col];
                 }
                 basisVector[pivotCol] = sum;
@@ -114,6 +115,24 @@ export function nullspaceMod2(tableau) {
     }
     
     return nullBasis;
+}
+
+/**
+ * Matrix-vector multiplication in GF(2)
+ * @param {Array} matrix - M×N matrix of Uint8Array rows
+ * @param {Uint8Array} vector - N-length vector
+ * @returns {Uint8Array} - M-length result vector
+ */
+function mulMod2(matrix, vector) {
+    const result = new Uint8Array(matrix.length);
+    for (let i = 0; i < matrix.length; i++) {
+        let sum = 0;
+        for (let j = 0; j < vector.length; j++) {
+            sum ^= matrix[i][j] & vector[j];
+        }
+        result[i] = sum;
+    }
+    return result;
 }
 
 /**
@@ -170,129 +189,80 @@ function rankMod2(matrix) {
  * @returns {Array} - Array of 2k logical operators (alternating X, Z pairs)
  */
 export function findLogicalOperators(S, k) {
-    // S: M x 2N Uint8Array, rows are stabilizers [X | Z]
     if (k === 0 || S.length === 0) return [];
-
+  
     const N  = S[0].length >>> 1;
     const M2 = S[0].length;
-
-    // 1) Build SΩ by swapping halves: row·Ω = [Z | X]
+  
+    // SΩ = S·J  (swap halves per row)
     const SOmega = S.map(row => {
-        const out = new Uint8Array(M2);
-        out.set(row.subarray(N, 2*N), 0);   // Z -> left
-        out.set(row.subarray(0, N),   N);   // X -> right
-        return out;
+      const out = new Uint8Array(M2);
+      out.set(row.subarray(N, 2*N), 0);
+      out.set(row.subarray(0, N),   N);
+      return out;
     });
-
-    // 2) Centralizer basis: nullspace(SΩ)
-    const centralizer = nullspaceMod2(SOmega); // array of Uint8Array(M2)
-    console.log(`DEBUG: Found ${centralizer.length} centralizer vectors for k=${k} (need ${2*k} logicals)`);
-
-    // 3) Select a complement to the stabilizer span (size = 2k)
-    //    by greedily keeping vectors that increase rank of [S; chosen]
-    const basis = [];
-    let span = S.map(r => r.slice());   // working matrix to test rank increase
-    let rankNow = rankMod2(span);
-
+  
+    const centralizer = nullspaceMod2(SOmega);
+  
+    // ===== key change: build a FULL pool, not just 2k vectors =====
+    // keep all centralizer vectors that extend rank beyond span(S)
+    let span = S.map(r => r.slice());
+    let rNow = rankMod2(span);
+    const pool = [];
     for (const v of centralizer) {
-        const trial = span.concat([v]);
-        const r2 = rankMod2(trial);
-        if (r2 > rankNow) {
-            basis.push(v.slice());
-            span = trial;
-            rankNow = r2;
-            if (basis.length === 2*k) break;
-        }
+      const trial = span.concat([v]);
+      const r2 = rankMod2(trial);
+      if (r2 > rNow) {
+        pool.push(v.slice());
+        span = trial;
+        rNow = r2;
+      }
     }
-    if (basis.length !== 2*k) {
-        // Fallback: try remaining centralizer vectors to fill to 2k
-        for (const v of centralizer) {
-            if (basis.length === 2*k) break;
-            const trial = span.concat([v]);
-            const r2 = rankMod2(trial);
-            if (r2 > rankNow) {
-                basis.push(v.slice());
-                span = trial;
-                rankNow = r2;
-            }
-        }
+    // If pool < 2k, we can’t form all logicals
+    if (pool.length < 2*k) {
+      console.log(`DEBUG: Only ${pool.length} independent centralizer vectors outside span(S); need at least ${2*k}.`);
     }
-    if (basis.length !== 2*k) {
-        // Not enough independent centralizer vectors beyond stabilizers
-        console.log(`DEBUG: Only found ${basis.length} independent vectors, needed ${2*k}`);
-        return basis; // or throw, depending on your app
-    }
-    console.log(`DEBUG: Found ${basis.length} independent vectors, proceeding with Gram-Schmidt`);
-    
-    // Debug: Show the basis vectors before Gram-Schmidt
-    console.log("DEBUG: Basis vectors before Gram-Schmidt:");
-    basis.forEach((vec, i) => {
-        const xPart = Array.from(vec.slice(0, N));
-        const zPart = Array.from(vec.slice(N));
-        console.log(`  basis[${i}]: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
-    });
-
-    // Helpers
+  
     const sp = (a, b) => {
-        // symplectic product <a,b> = a_X·b_Z + a_Z·b_X  (mod 2)
-        let s = 0;
-        for (let i = 0; i < N; i++) {
-            s ^= (a[i] & b[N+i]) ^ (a[N+i] & b[i]);
-        }
-        return s & 1;
+      let s = 0;
+      for (let i = 0; i < N; i++) s ^= (a[i] & b[N+i]) ^ (a[N+i] & b[i]);
+      return s & 1;
     };
     const xorInPlace = (dst, src) => { for (let i=0;i<M2;i++) dst[i]^=src[i]; };
-
-    // 4) Symplectic Gram–Schmidt on 'basis' to produce [X1,Z1,...,Xk,Zk]
-    const pool = basis.map(v => v.slice());
+  
     const logicals = [];
-
-    while (logicals.length < 2*k && pool.length) {
-        console.log(`DEBUG: Gram-Schmidt iteration, logicals=${logicals.length}, pool=${pool.length}, target=${2*k}`);
-        
-        // pick a nonzero vector as Xi
-        let Xi = null, idxX = -1;
-        for (let i = 0; i < pool.length; i++) {
-            const v = pool[i];
-            let nonzero = 0; for (let j=0;j<M2;j++) nonzero |= v[j];
-            if (nonzero) { Xi = v; idxX = i; break; }
-        }
-        if (!Xi) {
-            console.log("DEBUG: No nonzero vector found in pool, breaking");
-            break;
-        }
-        console.log(`DEBUG: Selected Xi at index ${idxX}: [${Array.from(Xi).join(',')}]`);
-        pool.splice(idxX, 1);
-
-        // find a Zi with <Xi, Zi> = 1
-        let Zi = null, idxZ = -1;
-        for (let i = 0; i < pool.length; i++) {
-            const symProduct = sp(Xi, pool[i]);
-            console.log(`DEBUG: Checking symplectic product with pool[${i}]: <Xi, v> = ${symProduct}`);
-            if (symProduct === 1) { Zi = pool[i]; idxZ = i; break; }
-        }
-        if (!Zi) {
-            console.log("DEBUG: No symplectic partner found for Xi, continuing to next vector");
-            // put Xi back and try next; in well-formed cases you should find a partner
-            continue;
-        }
-        console.log(`DEBUG: Found symplectic partner Zi at index ${idxZ}: [${Array.from(Zi).join(',')}]`);
-        pool.splice(idxZ, 1);
-
-        // orthogonalize the remaining pool w.r.t. (Xi, Zi)
-        console.log(`DEBUG: Orthogonalizing remaining ${pool.length} vectors`);
-        for (const w of pool) {
-            const ax = sp(w, Zi); if (ax) xorInPlace(w, Xi);
-            const az = sp(w, Xi); if (az) xorInPlace(w, Zi);
-        }
-
-        logicals.push(Xi.slice(), Zi.slice()); // enforce order [X1,Z1,...]
-        console.log(`DEBUG: Added logical pair, now have ${logicals.length} logical operators`);
+    // Work on a mutable copy of the full pool
+    const work = pool.map(v => v.slice());
+  
+    while (logicals.length < 2*k && work.length) {
+      // pick any nonzero Xi
+      let idxX = work.findIndex(v => v.some(b => b));
+      if (idxX < 0) break;
+      const Xi = work.splice(idxX, 1)[0];
+  
+      // find a Zi in the remaining work with <Xi,Zi>=1
+      let idxZ = -1;
+      for (let i = 0; i < work.length; i++) {
+        if (sp(Xi, work[i]) === 1) { idxZ = i; break; }
+      }
+      if (idxZ === -1) {
+        // no partner among current work; try next Xi (put this one back at end)
+        work.push(Xi);
+        continue;
+      }
+      const Zi = work.splice(idxZ, 1)[0];
+  
+      // orthogonalize the rest w.r.t. (Xi, Zi)
+      for (const w of work) {
+        if (sp(w, Zi)) xorInPlace(w, Xi);
+        if (sp(w, Xi)) xorInPlace(w, Zi);
+      }
+  
+      logicals.push(Xi.slice(), Zi.slice());
     }
-
-    console.log(`DEBUG: Completed Gram-Schmidt, returning ${logicals.length} logical operators`);
-    return logicals; // length should be 2k
-}
+  
+    return logicals;
+  }
 
 /**
  * Compute Hamming weight of a binary vector
@@ -351,31 +321,41 @@ export function findDistance(tableau, logicals) {
  * @param {Array} logicals - Array of logical operators  
  * @returns {number} - Entanglement measure (count/2)
  */
-export function computeEntanglement(tableau, logicals) {
-    if (logicals.length === 0) return 0;
-    
-    const N = tableau[0].length / 2;
-    const cut = Math.floor(N / 2);
-    let crossingCount = 0;
-    
-    // Consider only Z-logical operators (every other one if in symplectic pairs)
-    for (let i = 1; i < logicals.length; i += 2) {
-        const row = logicals[i];
-        
-        // Check support on left half (both X and Z)
-        const leftSupport = Array.from({length: cut}, (_, i) => 
-            row[i] || row[N + i]
-        ).some(x => x);
-        
-        // Check support on right half (both X and Z)  
-        const rightSupport = Array.from({length: N - cut}, (_, i) => 
-            row[cut + i] || row[N + cut + i]
-        ).some(x => x);
-        
-        if (leftSupport && rightSupport) {
-            crossingCount++;
-        }
+export function computeEntanglement(tableau, logicals = []) {
+    if (!tableau || tableau.length === 0) return 0;
+  
+    const twoN = tableau[0].length;
+    const N = twoN >>> 1;
+    const cut = N >>> 1;
+  
+    // 1) Augment with Z-logicals: those with X part == 0
+    const augmented = tableau.slice();
+    if (logicals && logicals.length) {
+      for (const op of logicals) {
+        let hasX = false;
+        for (let i = 0; i < N; i++) { if (op[i]) { hasX = true; break; } }
+        if (!hasX) augmented.push(op); // append Z-logical as additional stabilizer
+      }
     }
-    
-    return crossingCount / 2;
-} 
+  
+    // 2) Count rows with support on both sides of the cut
+    let crossing = 0;
+    for (const row of augmented) {
+      let left = false, right = false;
+  
+      // left half: any X or Z on [0, cut)
+      for (let i = 0; i < cut && !left; i++) {
+        if (row[i] | row[N + i]) left = true;
+      }
+  
+      // right half: any X or Z on [cut, N)
+      for (let i = cut; i < N && !right; i++) {
+        if (row[i] | row[N + i]) right = true;
+      }
+  
+      if (left && right) crossing++;
+    }
+  
+    // 3) Entanglement is half the number of crossing rows
+    return (crossing / 2) | 0; // integer division
+}

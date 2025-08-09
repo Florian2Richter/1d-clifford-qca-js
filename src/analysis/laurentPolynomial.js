@@ -630,7 +630,7 @@ export function calculateCodeDistanceAndLogicals(initialState, N) {
   // Use existing working functions for basic calculations
   const k = calculateLogicalQubits(initialState, N);
   const d = k > 0 ? calculateCodeDistance(initialState, N) : 0;
-  
+
   return {
     distance: d,
     logicalQubits: k,
