@@ -152,63 +152,53 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
-                // Binary tableau analysis only
+                // Binary tableau analysis - always compute entanglement, even when k=0
                 let d = 0;
                 let entanglement = 0;
-                if (k > 0) {
-                    try {
-                        const { X, Z } = initialStateToLaurent(syntheticState);
-                        
-                        // Generate ALL cyclic shifts of the seed stabilizer (S0, S1, ..., S_{N-1})
-                        const allStabilizers = [];
-                        for (let shift = 0; shift < latticeSize; shift++) {
-                            // Create shifted versions by multiplying by x^shift
-                            const shiftedX = X.multiply(new LaurentPolynomial({[shift]: 1}, 2));
-                            const shiftedZ = Z.multiply(new LaurentPolynomial({[shift]: 1}, 2));
-                            allStabilizers.push({ X: shiftedX, Z: shiftedZ });
-                        }
-                        
-                        const binTableau = polyToBinaryTableau(allStabilizers, latticeSize);
-                        
-                        // GUARD: Verify we have the full set of stabilizers
-                        if (binTableau.length !== latticeSize) {
-                            console.error(`CRITICAL: Expected ${latticeSize} stabilizers, got ${binTableau.length}!`);
-                            console.error("This means we're not passing the full cyclic shift set S0, S1, ..., S_{N-1}");
-                        } else {
-                            console.log(`✓ CORRECT: Generated all ${binTableau.length} cyclic shifts (S0, S1, ..., S${latticeSize-1})`);
-                        }
-                        
-                        // Debug: Show binary tableau
-                        console.log("=== BINARY STABILIZER TABLEAU ===");
-                        binTableau.forEach((row, index) => {
-                            const xPart = Array.from(row.slice(0, latticeSize));
-                            const zPart = Array.from(row.slice(latticeSize));
-                            console.log(`Stabilizer ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
-                        });
-                        console.log("==================================");
-                        
+                
+                try {
+                    const { X, Z } = initialStateToLaurent(syntheticState);
+                    
+                    // Generate ALL cyclic shifts of the seed stabilizer (S0, S1, ..., S_{N-1})
+                    const allStabilizers = [];
+                    for (let shift = 0; shift < latticeSize; shift++) {
+                        // Create shifted versions by multiplying by x^shift
+                        const shiftedX = X.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                        const shiftedZ = Z.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                        allStabilizers.push({ X: shiftedX, Z: shiftedZ });
+                    }
+                    
+                    const binTableau = polyToBinaryTableau(allStabilizers, latticeSize);
+                    
+                    // GUARD: Verify we have the full set of stabilizers
+                    if (binTableau.length !== latticeSize) {
+                        console.error(`CRITICAL: Expected ${latticeSize} stabilizers, got ${binTableau.length}!`);
+                        console.error("This means we're not passing the full cyclic shift set S0, S1, ..., S_{N-1}");
+                    } else {
+                        console.log(`✓ CORRECT: Generated all ${binTableau.length} cyclic shifts (S0, S1, ..., S${latticeSize-1})`);
+                    }
+                    
+                    // Debug: Show binary tableau
+                    console.log("=== BINARY STABILIZER TABLEAU ===");
+                    binTableau.forEach((row, index) => {
+                        const xPart = Array.from(row.slice(0, latticeSize));
+                        const zPart = Array.from(row.slice(latticeSize));
+                        console.log(`Stabilizer ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
+                    });
+                    console.log("==================================");
+                    
+                    // Always compute entanglement from stabilizer tableau
+                    entanglement = computeEntanglement(binTableau, []);
+                    
+                    // Only compute distance when k > 0 (requires logical operators)
+                    if (k > 0) {
                         const logicals = findLogicalOperators(binTableau, k);
                         const binaryDistance = findDistance(binTableau, logicals);
+                        
+                        // Update entanglement calculation with logical operators if available
                         entanglement = computeEntanglement(binTableau, logicals);
                         
                         d = binaryDistance;
-                        
-                        // Output key results immediately
-                        console.log(`📊 RESULTS (Initial): Distance=${d}, Entanglement=${entanglement}, Logicals=${logicals.length}/${2*k}`);
-                        
-                        console.log("Initial configuration - Binary analysis:", {
-                            distance: d,
-                            entanglement,
-                            logicalCount: logicals.length,
-                            k: k,
-                            tableauRows: binTableau.length
-                        });
-                        
-                        // Enhanced entanglement output
-                        console.log(`🔗 ENTANGLEMENT (Initial): ${entanglement}`);
-                        
-                        // Debug: Always show what we tried to find
-                        console.log(`Searching for ${2*k} logical operators with tableau of ${binTableau.length} rows`);
                         
                         // Debug: Show actual logical operators
                         console.log(`DEBUG: About to check if logicals.length (${logicals.length}) > 0`);
@@ -222,9 +212,25 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                             });
                             console.log("===============================================");
                         }
-                    } catch (error) {
-                        console.error("Error in binary tableau analysis:", error);
                     }
+                    
+                    // Output key results immediately (regardless of k value)
+                    const logicalCount = k > 0 ? findLogicalOperators(binTableau, k).length : 0;
+                    console.log(`📊 RESULTS (Initial): Distance=${d}, Entanglement=${entanglement}, Logicals=${k > 0 ? `${logicalCount}/${2*k}` : 'N/A (k=0)'}`);
+                    
+                    console.log("Initial configuration - Binary analysis:", {
+                        distance: d,
+                        entanglement,
+                        logicalCount: logicalCount,
+                        k: k,
+                        tableauRows: binTableau.length
+                    });
+                    
+                    // Enhanced entanglement output
+                    console.log(`🔗 ENTANGLEMENT (Initial): ${entanglement}`);
+                    
+                } catch (error) {
+                    console.error("Error in binary tableau analysis:", error);
                 }
                 setCodeDistance(d);
             } else {
@@ -280,63 +286,53 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
-                // Binary tableau analysis only
+                // Binary tableau analysis - always compute entanglement, even when k=0
                 let d = 0;
                 let entanglement = 0;
-                if (k > 0) {
-                    try {
-                        const { X, Z } = initialStateToLaurent(pauliArray);
-                        
-                        // Generate ALL cyclic shifts of the seed stabilizer (S0, S1, ..., S_{N-1})
-                        const allStabilizers = [];
-                        for (let shift = 0; shift < latticeSize; shift++) {
-                            // Create shifted versions by multiplying by x^shift
-                            const shiftedX = X.multiply(new LaurentPolynomial({[shift]: 1}, 2));
-                            const shiftedZ = Z.multiply(new LaurentPolynomial({[shift]: 1}, 2));
-                            allStabilizers.push({ X: shiftedX, Z: shiftedZ });
-                        }
-                        
-                        const binTableau = polyToBinaryTableau(allStabilizers, latticeSize);
-                        
-                        // GUARD: Verify we have the full set of stabilizers
-                        if (binTableau.length !== latticeSize) {
-                            console.error(`CRITICAL (Step ${analysisStepTrigger}): Expected ${latticeSize} stabilizers, got ${binTableau.length}!`);
-                            console.error("This means we're not passing the full cyclic shift set S0, S1, ..., S_{N-1}");
-                        } else {
-                            console.log(`✓ CORRECT (Step ${analysisStepTrigger}): Generated all ${binTableau.length} cyclic shifts (S0, S1, ..., S${latticeSize-1})`);
-                        }
-                        
-                        // Debug: Show binary tableau for simulation step
-                        console.log(`=== BINARY STABILIZER TABLEAU Step ${analysisStepTrigger} ===`);
-                        binTableau.forEach((row, index) => {
-                            const xPart = Array.from(row.slice(0, latticeSize));
-                            const zPart = Array.from(row.slice(latticeSize));
-                            console.log(`Stabilizer ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
-                        });
-                        console.log("================================================");
-                        
+                
+                try {
+                    const { X, Z } = initialStateToLaurent(pauliArray);
+                    
+                    // Generate ALL cyclic shifts of the seed stabilizer (S0, S1, ..., S_{N-1})
+                    const allStabilizers = [];
+                    for (let shift = 0; shift < latticeSize; shift++) {
+                        // Create shifted versions by multiplying by x^shift
+                        const shiftedX = X.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                        const shiftedZ = Z.multiply(new LaurentPolynomial({[shift]: 1}, 2));
+                        allStabilizers.push({ X: shiftedX, Z: shiftedZ });
+                    }
+                    
+                    const binTableau = polyToBinaryTableau(allStabilizers, latticeSize);
+                    
+                    // GUARD: Verify we have the full set of stabilizers
+                    if (binTableau.length !== latticeSize) {
+                        console.error(`CRITICAL (Step ${analysisStepTrigger}): Expected ${latticeSize} stabilizers, got ${binTableau.length}!`);
+                        console.error("This means we're not passing the full cyclic shift set S0, S1, ..., S_{N-1}");
+                    } else {
+                        console.log(`✓ CORRECT (Step ${analysisStepTrigger}): Generated all ${binTableau.length} cyclic shifts (S0, S1, ..., S${latticeSize-1})`);
+                    }
+                    
+                    // Debug: Show binary tableau for simulation step
+                    console.log(`=== BINARY STABILIZER TABLEAU Step ${analysisStepTrigger} ===`);
+                    binTableau.forEach((row, index) => {
+                        const xPart = Array.from(row.slice(0, latticeSize));
+                        const zPart = Array.from(row.slice(latticeSize));
+                        console.log(`Stabilizer ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
+                    });
+                    console.log("================================================");
+                    
+                    // Always compute entanglement from stabilizer tableau
+                    entanglement = computeEntanglement(binTableau, []);
+                    
+                    // Only compute distance when k > 0 (requires logical operators)
+                    if (k > 0) {
                         const logicals = findLogicalOperators(binTableau, k);
                         const binaryDistance = findDistance(binTableau, logicals);
+                        
+                        // Update entanglement calculation with logical operators if available
                         entanglement = computeEntanglement(binTableau, logicals);
                         
                         d = binaryDistance;
-                        
-                        // Output key results immediately
-                        console.log(`📊 RESULTS (Step ${analysisStepTrigger}): Distance=${d}, Entanglement=${entanglement}, Logicals=${logicals.length}/${2*k}`);
-                        
-                        console.log("Simulation step - Binary analysis:", {
-                            distance: d,
-                            entanglement,
-                            logicalCount: logicals.length,
-                            k: k,
-                            tableauRows: binTableau.length
-                        });
-                        
-                        // Enhanced entanglement output
-                        console.log(`🔗 ENTANGLEMENT (Step ${analysisStepTrigger}): ${entanglement}`);
-                        
-                        // Debug: Always show what we tried to find
-                        console.log(`Searching for ${2*k} logical operators with tableau of ${binTableau.length} rows`);
                         
                         // Debug: Show actual logical operators
                         console.log(`DEBUG: About to check if logicals.length (${logicals.length}) > 0`);
@@ -350,9 +346,25 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                             });
                             console.log("=======================================================");
                         }
-                    } catch (error) {
-                        console.error("Error in binary tableau analysis:", error);
                     }
+                    
+                    // Output key results immediately (regardless of k value)
+                    const logicalCount = k > 0 ? findLogicalOperators(binTableau, k).length : 0;
+                    console.log(`📊 RESULTS (Step ${analysisStepTrigger}): Distance=${d}, Entanglement=${entanglement}, Logicals=${k > 0 ? `${logicalCount}/${2*k}` : 'N/A (k=0)'}`);
+                    
+                    console.log("Simulation step - Binary analysis:", {
+                        distance: d,
+                        entanglement,
+                        logicalCount: logicalCount,
+                        k: k,
+                        tableauRows: binTableau.length
+                    });
+                    
+                    // Enhanced entanglement output
+                    console.log(`🔗 ENTANGLEMENT (Step ${analysisStepTrigger}): ${entanglement}`);
+                    
+                } catch (error) {
+                    console.error("Error in binary tableau analysis:", error);
                 }
                 setCodeDistance(d);
                 
@@ -364,7 +376,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                     return newTrajectory;
                 });
                 
-                // Update entanglement trajectory
+                // Update entanglement trajectory (always update, even when k=0)
                 setEntanglementTrajectory(prev => {
                     const newTrajectory = [...prev, { step: analysisStepTrigger, entanglement }];
                     console.log("Updating entanglement trajectory:", newTrajectory);
