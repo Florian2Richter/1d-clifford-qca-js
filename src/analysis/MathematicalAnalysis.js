@@ -162,6 +162,16 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         const { X, Z } = initialStateToLaurent(syntheticState);
                         const gens = [{ X, Z }]; // Single generator for this state
                         const binTableau = polyToBinaryTableau(gens, latticeSize);
+                        
+                        // Debug: Show binary tableau
+                        console.log("=== BINARY STABILIZER TABLEAU ===");
+                        binTableau.forEach((row, index) => {
+                            const xPart = Array.from(row.slice(0, latticeSize));
+                            const zPart = Array.from(row.slice(latticeSize));
+                            console.log(`Stabilizer ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
+                        });
+                        console.log("==================================");
+                        
                         const logicals = findLogicalOperators(binTableau, k);
                         const binaryDistance = findDistance(binTableau, logicals);
                         entanglement = computeEntanglement(binTableau, logicals);
@@ -171,6 +181,18 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                             entanglement,
                             logicalCount: logicals.length
                         });
+                        
+                        // Debug: Show actual logical operators
+                        if (logicals.length > 0) {
+                            console.log("=== LOGICAL OPERATORS (Binary Stabilizer Formalism) ===");
+                            logicals.forEach((logical, index) => {
+                                const xPart = Array.from(logical.slice(0, latticeSize));
+                                const zPart = Array.from(logical.slice(latticeSize));
+                                const weight = xPart.reduce((sum, x, i) => sum + (x || zPart[i] ? 1 : 0), 0);
+                                console.log(`Logical ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}] weight=${weight}`);
+                            });
+                            console.log("===============================================");
+                        }
                     } catch (error) {
                         console.error("Error in binary tableau analysis:", error);
                     }
@@ -237,6 +259,16 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                         const { X, Z } = initialStateToLaurent(pauliArray);
                         const gens = [{ X, Z }]; // Single generator for this state
                         const binTableau = polyToBinaryTableau(gens, latticeSize);
+                        
+                        // Debug: Show binary tableau for simulation step
+                        console.log(`=== BINARY STABILIZER TABLEAU Step ${analysisStepTrigger} ===`);
+                        binTableau.forEach((row, index) => {
+                            const xPart = Array.from(row.slice(0, latticeSize));
+                            const zPart = Array.from(row.slice(latticeSize));
+                            console.log(`Stabilizer ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
+                        });
+                        console.log("================================================");
+                        
                         const logicals = findLogicalOperators(binTableau, k);
                         const binaryDistance = findDistance(binTableau, logicals);
                         entanglement = computeEntanglement(binTableau, logicals);
@@ -246,6 +278,18 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                             entanglement,
                             logicalCount: logicals.length
                         });
+                        
+                        // Debug: Show actual logical operators
+                        if (logicals.length > 0) {
+                            console.log(`=== LOGICAL OPERATORS Step ${analysisStepTrigger} (Binary Stabilizer Formalism) ===`);
+                            logicals.forEach((logical, index) => {
+                                const xPart = Array.from(logical.slice(0, latticeSize));
+                                const zPart = Array.from(logical.slice(latticeSize));
+                                const weight = xPart.reduce((sum, x, i) => sum + (x || zPart[i] ? 1 : 0), 0);
+                                console.log(`Logical ${index}: X=[${xPart.join(',')}] Z=[${zPart.join(',')}] weight=${weight}`);
+                            });
+                            console.log("=======================================================");
+                        }
                     } catch (error) {
                         console.error("Error in binary tableau analysis:", error);
                     }

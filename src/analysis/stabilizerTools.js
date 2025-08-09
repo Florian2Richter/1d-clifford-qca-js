@@ -6,22 +6,8 @@
  * distance calculation, and entanglement computation.
  */
 
-/**
- * Create binary symplectic matrix Ω for N qubits
- * @param {number} N - Number of qubits
- * @returns {Array} - 2N×2N binary symplectic matrix
- */
-export function omegaBinary(N) {
-    const M = 2 * N;
-    const Omega = Array.from({length: M}, () => new Uint8Array(M));
-    
-    for (let i = 0; i < N; i++) {
-        Omega[i][N + i] = 1;   // [0 I] block
-        Omega[N + i][i] = 1;   // [I 0] block
-    }
-    
-    return Omega;
-}
+// Note: omegaBinary function removed - new implementation uses more efficient
+// SΩ computation by direct array swapping rather than explicit matrix multiplication
 
 /**
  * In-place GF(2) row reduction of a binary matrix
@@ -131,85 +117,157 @@ export function nullspaceMod2(tableau) {
 }
 
 /**
- * Find logical operators using centralizer construction
- * @param {Array} tableau - M×2N stabilizer tableau
- * @param {number} k - Number of logical qubits
- * @returns {Array} - Array of 2k logical operators (alternating X, Z pairs)
+ * Compute the rank of a binary matrix using Gaussian elimination
+ * @param {Array} matrix - Array of Uint8Array rows
+ * @returns {number} - Rank of the matrix
  */
-export function findLogicalOperators(tableau, k) {
-    if (k === 0 || tableau.length === 0) return [];
+function rankMod2(matrix) {
+    if (matrix.length === 0) return 0;
     
-    const N = tableau[0].length / 2;
-    const Omega = omegaBinary(N);
+    // Make a copy to avoid modifying the original
+    const mat = matrix.map(row => new Uint8Array(row));
+    const rows = mat.length;
+    const cols = mat[0].length;
+    let rank = 0;
     
-    // Compute tableau * Omega
-    const tableauOmega = [];
-    for (const row of tableau) {
-        const newRow = new Uint8Array(2 * N);
-        for (let i = 0; i < 2 * N; i++) {
-            for (let j = 0; j < 2 * N; j++) {
-                newRow[i] ^= row[j] & Omega[j][i];
-            }
-        }
-        tableauOmega.push(newRow);
-    }
-    
-    // Find centralizer (null space of tableau * Omega)
-    const centralizer = nullspaceMod2(tableauOmega);
-    
-    // Greedily pick 2k independent rows to form symplectic basis
-    const logicals = [];
-    const used = new Set();
-    
-    // Try to find k symplectic pairs (X_i, Z_i)
-    for (let i = 0; i < k && logicals.length < 2 * k; i++) {
-        // Find an unused vector from centralizer
-        let xLogical = null;
-        for (let j = 0; j < centralizer.length; j++) {
-            if (!used.has(j)) {
-                xLogical = centralizer[j];
-                used.add(j);
+    for (let col = 0; col < cols && rank < rows; col++) {
+        // Find pivot row
+        let pivotRow = -1;
+        for (let row = rank; row < rows; row++) {
+            if (mat[row][col] === 1) {
+                pivotRow = row;
                 break;
             }
         }
         
-        if (!xLogical) break;
-        logicals.push(new Uint8Array(xLogical));
+        if (pivotRow === -1) continue; // No pivot in this column
         
-        // Find a Z logical that anticommutes with this X logical
-        let zLogical = null;
-        for (let j = 0; j < centralizer.length; j++) {
-            if (!used.has(j)) {
-                // Check if they anticommute (symplectic inner product = 1)
-                let symplecticProduct = 0;
-                for (let pos = 0; pos < N; pos++) {
-                    symplecticProduct ^= (xLogical[pos] & centralizer[j][N + pos]) ^
-                                        (xLogical[N + pos] & centralizer[j][pos]);
-                }
-                
-                if (symplecticProduct === 1) {
-                    zLogical = centralizer[j];
-                    used.add(j);
-                    break;
+        // Swap rows if needed
+        if (pivotRow !== rank) {
+            [mat[rank], mat[pivotRow]] = [mat[pivotRow], mat[rank]];
+        }
+        
+        // Eliminate other rows
+        for (let row = 0; row < rows; row++) {
+            if (row !== rank && mat[row][col] === 1) {
+                // XOR rows (GF(2) elimination)
+                for (let c = 0; c < cols; c++) {
+                    mat[row][c] ^= mat[rank][c];
                 }
             }
         }
         
-        if (zLogical) {
-            logicals.push(new Uint8Array(zLogical));
-        } else {
-            // If we can't find a symplectic partner, just add any unused vector
-            for (let j = 0; j < centralizer.length; j++) {
-                if (!used.has(j)) {
-                    logicals.push(new Uint8Array(centralizer[j]));
-                    used.add(j);
-                    break;
-                }
+        rank++;
+    }
+    
+    return rank;
+}
+
+/**
+ * Find logical operators using centralizer construction with symplectic Gram-Schmidt
+ * @param {Array} S - M×2N stabilizer tableau 
+ * @param {number} k - Number of logical qubits
+ * @returns {Array} - Array of 2k logical operators (alternating X, Z pairs)
+ */
+export function findLogicalOperators(S, k) {
+    // S: M x 2N Uint8Array, rows are stabilizers [X | Z]
+    if (k === 0 || S.length === 0) return [];
+
+    const N  = S[0].length >>> 1;
+    const M2 = S[0].length;
+
+    // 1) Build SΩ by swapping halves: row·Ω = [Z | X]
+    const SOmega = S.map(row => {
+        const out = new Uint8Array(M2);
+        out.set(row.subarray(N, 2*N), 0);   // Z -> left
+        out.set(row.subarray(0, N),   N);   // X -> right
+        return out;
+    });
+
+    // 2) Centralizer basis: nullspace(SΩ)
+    const centralizer = nullspaceMod2(SOmega); // array of Uint8Array(M2)
+
+    // 3) Select a complement to the stabilizer span (size = 2k)
+    //    by greedily keeping vectors that increase rank of [S; chosen]
+    const basis = [];
+    let span = S.map(r => r.slice());   // working matrix to test rank increase
+    let rankNow = rankMod2(span);
+
+    for (const v of centralizer) {
+        const trial = span.concat([v]);
+        const r2 = rankMod2(trial);
+        if (r2 > rankNow) {
+            basis.push(v.slice());
+            span = trial;
+            rankNow = r2;
+            if (basis.length === 2*k) break;
+        }
+    }
+    if (basis.length !== 2*k) {
+        // Fallback: try remaining centralizer vectors to fill to 2k
+        for (const v of centralizer) {
+            if (basis.length === 2*k) break;
+            const trial = span.concat([v]);
+            const r2 = rankMod2(trial);
+            if (r2 > rankNow) {
+                basis.push(v.slice());
+                span = trial;
+                rankNow = r2;
             }
         }
     }
-    
-    return logicals;
+    if (basis.length !== 2*k) {
+        // Not enough independent centralizer vectors beyond stabilizers
+        return basis; // or throw, depending on your app
+    }
+
+    // Helpers
+    const sp = (a, b) => {
+        // symplectic product <a,b> = a_X·b_Z + a_Z·b_X  (mod 2)
+        let s = 0;
+        for (let i = 0; i < N; i++) {
+            s ^= (a[i] & b[N+i]) ^ (a[N+i] & b[i]);
+        }
+        return s & 1;
+    };
+    const xorInPlace = (dst, src) => { for (let i=0;i<M2;i++) dst[i]^=src[i]; };
+
+    // 4) Symplectic Gram–Schmidt on 'basis' to produce [X1,Z1,...,Xk,Zk]
+    const pool = basis.map(v => v.slice());
+    const logicals = [];
+
+    while (logicals.length < 2*k && pool.length) {
+        // pick a nonzero vector as Xi
+        let Xi = null, idxX = -1;
+        for (let i = 0; i < pool.length; i++) {
+            const v = pool[i];
+            let nonzero = 0; for (let j=0;j<M2;j++) nonzero |= v[j];
+            if (nonzero) { Xi = v; idxX = i; break; }
+        }
+        if (!Xi) break;
+        pool.splice(idxX, 1);
+
+        // find a Zi with <Xi, Zi> = 1
+        let Zi = null, idxZ = -1;
+        for (let i = 0; i < pool.length; i++) {
+            if (sp(Xi, pool[i]) === 1) { Zi = pool[i]; idxZ = i; break; }
+        }
+        if (!Zi) {
+            // put Xi back and try next; in well-formed cases you should find a partner
+            continue;
+        }
+        pool.splice(idxZ, 1);
+
+        // orthogonalize the remaining pool w.r.t. (Xi, Zi)
+        for (const w of pool) {
+            const ax = sp(w, Zi); if (ax) xorInPlace(w, Xi);
+            const az = sp(w, Xi); if (az) xorInPlace(w, Zi);
+        }
+
+        logicals.push(Xi.slice(), Zi.slice()); // enforce order [X1,Z1,...]
+    }
+
+    return logicals; // length should be 2k
 }
 
 /**
