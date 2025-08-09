@@ -132,13 +132,13 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             const xString = X && typeof X.toString === 'function' ? X.toString() : '0';
             const zString = Z && typeof Z.toString === 'function' ? Z.toString() : '0';
             
-            // Simplified display for orthogonal stabilizer
-            let detailsText = `Generators:\nX(z) = ${xString}\nZ(z) = ${zString}\n\n`;
+            // Simplified display for orthogonal stabilizer - condition only
+            let detailsText;
             
             if (isOrthogonal) {
-                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0";
+                detailsText = "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0";
             } else {
-                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
+                detailsText = "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
             }
             
             setStabilizerDetails(detailsText);
@@ -260,12 +260,13 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             const xString = X && typeof X.toString === 'function' ? X.toString() : '0';
             const zString = Z && typeof Z.toString === 'function' ? Z.toString() : '0';
             
-            let detailsText = `Step ${analysisStepTrigger} Generators:\nX(z) = ${xString}\nZ(z) = ${zString}\n\n`;
+            // Simplified display for orthogonal stabilizer - condition only
+            let detailsText;
             
             if (isOrthogonal) {
-                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0";
+                detailsText = "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0";
             } else {
-                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
+                detailsText = "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
             }
             
             setStabilizerDetails(detailsText);

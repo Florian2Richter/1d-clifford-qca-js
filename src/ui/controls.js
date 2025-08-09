@@ -27,8 +27,8 @@ export function SimulationControls({
     onAnalysisUpdate,
     isRunning,
     isDisabled,
-    defaultSize = 10, 
-    defaultSteps = 1 
+    defaultSize = 100, 
+    defaultSteps = 50 
 }) {
     const [latticeSize, setLatticeSize] = useState(defaultSize);
     const [timeSteps, setTimeSteps] = useState(defaultSteps);
