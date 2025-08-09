@@ -51,7 +51,8 @@ export function App() {
         orthogonalStabilizer: false,
         logicalQubits: 0,
         codeDistance: 0,
-        codeDistanceTrajectory: []
+        codeDistanceTrajectory: [],
+        entanglementTrajectory: []
     });
 
     // Initialize QCA when rule matrix changes
@@ -166,7 +167,8 @@ export function App() {
         // Reset math properties including trajectory
         setMathProperties(prev => ({
             ...prev,
-            codeDistanceTrajectory: []
+            codeDistanceTrajectory: [],
+            entanglementTrajectory: []
         }));
         
         // Mark that the simulation has been reset, re-enabling controls
@@ -340,6 +342,88 @@ export function App() {
                                                                 {/* Y-axis labels */}
                                                                 <text x="20" y="25" className="chart-label" fontSize="10" fill="#6b7280" textAnchor="end">{maxDistance}</text>
                                                                 <text x="20" y="95" className="chart-label" fontSize="10" fill="#6b7280" textAnchor="end">{minDistance}</text>
+                                                                
+                                                                {/* Axis lines */}
+                                                                <line x1="25" y1="20" x2="25" y2="95" stroke="#e5e7eb" strokeWidth="1"/>
+                                                                <line x1="25" y1="95" x2="275" y2="95" stroke="#e5e7eb" strokeWidth="1"/>
+                                                                
+                                                                {/* X-axis labels */}
+                                                                <text x="30" y="110" className="chart-label" fontSize="9" fill="#6b7280" textAnchor="start">0</text>
+                                                                <text x="270" y="110" className="chart-label" fontSize="9" fill="#6b7280" textAnchor="end">{trajectory.length - 1}</text>
+                                                                <text x="150" y="110" className="chart-title" fontSize="11" fill="#374151" textAnchor="middle">Simulation Steps</text>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </svg>
+                                            </div>
+                                        )}
+                                        {mathProperties.entanglementTrajectory && mathProperties.entanglementTrajectory.length > 1 && (
+                                            <div className="trajectory-chart">
+                                                <h4>Entanglement Trajectory</h4>
+                                                <svg width="300" height="120">
+                                                    {/* Chart background grid */}
+                                                    <defs>
+                                                        <pattern id="entanglementGrid" width="15" height="15" patternUnits="userSpaceOnUse">
+                                                            <path d="M 15 0 L 0 0 0 15" fill="none" stroke="#f1f3f4" strokeWidth="0.5"/>
+                                                        </pattern>
+                                                        <linearGradient id="entanglementGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                            <stop offset="0%" style={{stopColor: '#f8f9fa', stopOpacity: 1}} />
+                                                            <stop offset="100%" style={{stopColor: '#ffffff', stopOpacity: 1}} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <rect width="300" height="120" fill="url(#entanglementGradient)" />
+                                                    <rect width="300" height="120" fill="url(#entanglementGrid)" />
+                                                    
+                                                    {/* Chart content */}
+                                                    {(() => {
+                                                        const trajectory = mathProperties.entanglementTrajectory;
+                                                        const maxEntanglement = Math.max(...trajectory.map(p => p.entanglement), 1);
+                                                        const minEntanglement = Math.min(...trajectory.map(p => p.entanglement), 0);
+                                                        const range = Math.max(maxEntanglement - minEntanglement, 1);
+                                                        
+                                                        const points = trajectory.map((point, index) => {
+                                                            const x = 30 + (index / Math.max(trajectory.length - 1, 1)) * 240;
+                                                            const y = 20 + (1 - (point.entanglement - minEntanglement) / range) * 70;
+                                                            return `${x},${y}`;
+                                                        }).join(' ');
+                                                        
+                                                        return (
+                                                            <>
+                                                                {/* Chart line */}
+                                                                <polyline
+                                                                    points={points}
+                                                                    className="chart-line"
+                                                                    stroke="#dc2626"
+                                                                    strokeWidth="2.5"
+                                                                    fill="none"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                />
+                                                                
+                                                                {/* Data points */}
+                                                                {trajectory.map((point, index) => {
+                                                                    const showPoint = trajectory.length <= 50 || index % Math.ceil(trajectory.length / 50) === 0 || index === trajectory.length - 1;
+                                                                    if (!showPoint) return null;
+                                                                    
+                                                                    const x = 30 + (index / Math.max(trajectory.length - 1, 1)) * 240;
+                                                                    const y = 20 + (1 - (point.entanglement - minEntanglement) / range) * 70;
+                                                                    return (
+                                                                        <circle
+                                                                            key={index}
+                                                                            cx={x}
+                                                                            cy={y}
+                                                                            r="3"
+                                                                            className="chart-point"
+                                                                            fill="#dc2626"
+                                                                            stroke="#ffffff"
+                                                                            strokeWidth="1.5"
+                                                                        />
+                                                                    );
+                                                                })}
+                                                                
+                                                                {/* Y-axis labels */}
+                                                                <text x="20" y="25" className="chart-label" fontSize="10" fill="#6b7280" textAnchor="end">{maxEntanglement.toFixed(1)}</text>
+                                                                <text x="20" y="95" className="chart-label" fontSize="10" fill="#6b7280" textAnchor="end">{minEntanglement.toFixed(1)}</text>
                                                                 
                                                                 {/* Axis lines */}
                                                                 <line x1="25" y1="20" x2="25" y2="95" stroke="#e5e7eb" strokeWidth="1"/>

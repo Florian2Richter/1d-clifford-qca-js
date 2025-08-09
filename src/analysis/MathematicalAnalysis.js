@@ -15,6 +15,8 @@ import {
     calculateCodeDistance,
     calculateCodeDistanceAndLogicals
 } from './laurentPolynomial.js';
+import { polyToBinaryTableau } from './polyToTableau.js';
+import { findLogicalOperators, findDistance, computeEntanglement } from './stabilizerTools.js';
 
 /**
  * Property display component with status indicator
@@ -56,6 +58,9 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
     
     // Add state for code distance trajectory
     const [codeDistanceTrajectory, setCodeDistanceTrajectory] = useState([]);
+    
+    // Add state for entanglement trajectory
+    const [entanglementTrajectory, setEntanglementTrajectory] = useState([]);
     
     // Keep the state but don't display it
     const [logicalQubitsDetails, setLogicalQubitsDetails] = useState('');
@@ -172,9 +177,28 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 
                 // Calculate code distance using the original working function
                 let d = 0;
+                let entanglement = 0;
                 if (k > 0) {
                     d = calculateCodeDistance(syntheticState, latticeSize);
                     console.log("Initial configuration - Code distance calculated:", d);
+                    
+                    // New binary tableau analysis
+                    try {
+                        const { X, Z } = initialStateToLaurent(syntheticState);
+                        const gens = [{ X, Z }]; // Single generator for this state
+                        const binTableau = polyToBinaryTableau(gens, latticeSize);
+                        const logicals = findLogicalOperators(binTableau, k);
+                        const binaryDistance = findDistance(binTableau, logicals);
+                        entanglement = computeEntanglement(binTableau, logicals);
+                        
+                        console.log("Initial configuration - Binary analysis:", {
+                            binaryDistance,
+                            entanglement,
+                            logicalCount: logicals.length
+                        });
+                    } catch (error) {
+                        console.error("Error in binary tableau analysis:", error);
+                    }
                 }
                 setCodeDistance(d);
             } else {
@@ -195,6 +219,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             // Clear trajectory when no active simulation
             console.log("Clearing trajectory - pauliArray:", !!pauliArray, "latticeSize:", latticeSize, "trigger:", analysisStepTrigger);
             setCodeDistanceTrajectory([]);
+            setEntanglementTrajectory([]);
             return;
         }
         
@@ -252,9 +277,28 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 
                 // Calculate code distance using the original working function
                 let d = 0;
+                let entanglement = 0;
                 if (k > 0) {
                     d = calculateCodeDistance(pauliArray, latticeSize);
                     console.log("Simulation step - Code distance calculated:", d);
+                    
+                    // New binary tableau analysis
+                    try {
+                        const { X, Z } = initialStateToLaurent(pauliArray);
+                        const gens = [{ X, Z }]; // Single generator for this state
+                        const binTableau = polyToBinaryTableau(gens, latticeSize);
+                        const logicals = findLogicalOperators(binTableau, k);
+                        const binaryDistance = findDistance(binTableau, logicals);
+                        entanglement = computeEntanglement(binTableau, logicals);
+                        
+                        console.log("Simulation step - Binary analysis:", {
+                            binaryDistance,
+                            entanglement,
+                            logicalCount: logicals.length
+                        });
+                    } catch (error) {
+                        console.error("Error in binary tableau analysis:", error);
+                    }
                 }
                 setCodeDistance(d);
                 
@@ -265,6 +309,13 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                     // Keep full trajectory from the first time step
                     return newTrajectory;
                 });
+                
+                // Update entanglement trajectory
+                setEntanglementTrajectory(prev => {
+                    const newTrajectory = [...prev, { step: analysisStepTrigger, entanglement }];
+                    console.log("Updating entanglement trajectory:", newTrajectory);
+                    return newTrajectory;
+                });
             } else {
                 setLogicalQubits(0);
                 setCodeDistance(0);
@@ -273,6 +324,12 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 // Update trajectory with distance 0
                 setCodeDistanceTrajectory(prev => {
                     const newTrajectory = [...prev, { step: analysisStepTrigger, distance: 0 }];
+                    return newTrajectory;
+                });
+                
+                // Update entanglement trajectory with 0
+                setEntanglementTrajectory(prev => {
+                    const newTrajectory = [...prev, { step: analysisStepTrigger, entanglement: 0 }];
                     return newTrajectory;
                 });
             }
@@ -291,7 +348,8 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 orthogonalStabilizer,
                 logicalQubits,
                 codeDistance,
-                trajectoryLength: codeDistanceTrajectory.length
+                trajectoryLength: codeDistanceTrajectory.length,
+                entanglementLength: entanglementTrajectory.length
             });
             onPropertiesChange({
                 invertible,
@@ -299,10 +357,11 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 orthogonalStabilizer,
                 logicalQubits,
                 codeDistance,
-                codeDistanceTrajectory
+                codeDistanceTrajectory,
+                entanglementTrajectory
             });
         }
-    }, [invertible, symplectic, orthogonalStabilizer, logicalQubits, codeDistance, codeDistanceTrajectory, onPropertiesChange]);
+    }, [invertible, symplectic, orthogonalStabilizer, logicalQubits, codeDistance, codeDistanceTrajectory, entanglementTrajectory, onPropertiesChange]);
 
     return (
         <div className="mathematical-analysis">
