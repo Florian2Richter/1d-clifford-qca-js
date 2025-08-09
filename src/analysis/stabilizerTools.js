@@ -223,6 +223,14 @@ export function findLogicalOperators(S, k) {
         return basis; // or throw, depending on your app
     }
     console.log(`DEBUG: Found ${basis.length} independent vectors, proceeding with Gram-Schmidt`);
+    
+    // Debug: Show the basis vectors before Gram-Schmidt
+    console.log("DEBUG: Basis vectors before Gram-Schmidt:");
+    basis.forEach((vec, i) => {
+        const xPart = Array.from(vec.slice(0, N));
+        const zPart = Array.from(vec.slice(N));
+        console.log(`  basis[${i}]: X=[${xPart.join(',')}] Z=[${zPart.join(',')}]`);
+    });
 
     // Helpers
     const sp = (a, b) => {
@@ -240,6 +248,8 @@ export function findLogicalOperators(S, k) {
     const logicals = [];
 
     while (logicals.length < 2*k && pool.length) {
+        console.log(`DEBUG: Gram-Schmidt iteration, logicals=${logicals.length}, pool=${pool.length}, target=${2*k}`);
+        
         // pick a nonzero vector as Xi
         let Xi = null, idxX = -1;
         for (let i = 0; i < pool.length; i++) {
@@ -247,27 +257,37 @@ export function findLogicalOperators(S, k) {
             let nonzero = 0; for (let j=0;j<M2;j++) nonzero |= v[j];
             if (nonzero) { Xi = v; idxX = i; break; }
         }
-        if (!Xi) break;
+        if (!Xi) {
+            console.log("DEBUG: No nonzero vector found in pool, breaking");
+            break;
+        }
+        console.log(`DEBUG: Selected Xi at index ${idxX}: [${Array.from(Xi).join(',')}]`);
         pool.splice(idxX, 1);
 
         // find a Zi with <Xi, Zi> = 1
         let Zi = null, idxZ = -1;
         for (let i = 0; i < pool.length; i++) {
-            if (sp(Xi, pool[i]) === 1) { Zi = pool[i]; idxZ = i; break; }
+            const symProduct = sp(Xi, pool[i]);
+            console.log(`DEBUG: Checking symplectic product with pool[${i}]: <Xi, v> = ${symProduct}`);
+            if (symProduct === 1) { Zi = pool[i]; idxZ = i; break; }
         }
         if (!Zi) {
+            console.log("DEBUG: No symplectic partner found for Xi, continuing to next vector");
             // put Xi back and try next; in well-formed cases you should find a partner
             continue;
         }
+        console.log(`DEBUG: Found symplectic partner Zi at index ${idxZ}: [${Array.from(Zi).join(',')}]`);
         pool.splice(idxZ, 1);
 
         // orthogonalize the remaining pool w.r.t. (Xi, Zi)
+        console.log(`DEBUG: Orthogonalizing remaining ${pool.length} vectors`);
         for (const w of pool) {
             const ax = sp(w, Zi); if (ax) xorInPlace(w, Xi);
             const az = sp(w, Xi); if (az) xorInPlace(w, Zi);
         }
 
         logicals.push(Xi.slice(), Zi.slice()); // enforce order [X1,Z1,...]
+        console.log(`DEBUG: Added logical pair, now have ${logicals.length} logical operators`);
     }
 
     console.log(`DEBUG: Completed Gram-Schmidt, returning ${logicals.length} logical operators`);
