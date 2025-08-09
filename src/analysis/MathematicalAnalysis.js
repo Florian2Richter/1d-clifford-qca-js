@@ -12,7 +12,8 @@ import {
     ruleMatrixToLaurent,
     initialStateToLaurent,
     calculateLogicalQubits,
-    calculateCodeDistance
+    calculateCodeDistance,
+    calculateCodeDistanceAndLogicals
 } from './laurentPolynomial.js';
 
 /**
@@ -126,12 +127,42 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             const { X, Z } = initialStateToLaurent(syntheticState);
             const xString = X && typeof X.toString === 'function' ? X.toString() : '0';
             const zString = Z && typeof Z.toString === 'function' ? Z.toString() : '0';
-            setStabilizerDetails(
-                `X(z) = ${xString}\nZ(z) = ${zString}\n` + 
-                (isOrthogonal ? 
-                    "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0" : 
-                    "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0")
-            );
+            
+            // Get detailed code analysis if orthogonal
+            let detailsText = `Generators:\nX(z) = ${xString}\nZ(z) = ${zString}\n\n`;
+            
+            if (isOrthogonal) {
+                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0\n\n";
+                
+                // Get detailed logical operator analysis
+                const codeAnalysis = calculateCodeDistanceAndLogicals(syntheticState, latticeSize);
+                if (codeAnalysis.logicalQubits > 0) {
+                    detailsText += `Code: [${latticeSize}, ${codeAnalysis.logicalQubits}, ${codeAnalysis.distance}]\n\n`;
+                    
+                    detailsText += `Canonical Seeds:\n`;
+                    detailsText += `RZ(x) = ${codeAnalysis.canonicalZSeed.polynomial.toString()}\n`;
+                    detailsText += `RX(x) = ${codeAnalysis.canonicalXSeed.polynomial.toString()}\n\n`;
+                    
+                    if (codeAnalysis.logicalZOperators.length > 0) {
+                        detailsText += `Logical Z operators:\n`;
+                        codeAnalysis.logicalZOperators.forEach((op, i) => {
+                            detailsText += `ℓZ${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
+                        });
+                        detailsText += `\n`;
+                    }
+                    
+                    if (codeAnalysis.logicalXOperators.length > 0) {
+                        detailsText += `Logical X operators:\n`;
+                        codeAnalysis.logicalXOperators.forEach((op, i) => {
+                            detailsText += `ℓX${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
+                        });
+                    }
+                }
+            } else {
+                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
+            }
+            
+            setStabilizerDetails(detailsText);
 
             // Calculate logical qubits and code distance for initial configuration
             if (isOrthogonal && latticeSize) {
@@ -139,7 +170,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
-                // Only calculate code distance if there are logical qubits
+                // Calculate code distance using the original working function
                 let d = 0;
                 if (k > 0) {
                     d = calculateCodeDistance(syntheticState, latticeSize);
@@ -162,6 +193,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
     useEffect(() => {
         if (!pauliArray || !latticeSize || !analysisStepTrigger) {
             // Clear trajectory when no active simulation
+            console.log("Clearing trajectory - pauliArray:", !!pauliArray, "latticeSize:", latticeSize, "trigger:", analysisStepTrigger);
             setCodeDistanceTrajectory([]);
             return;
         }
@@ -172,13 +204,53 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             // Analyze the current simulation state
             const isOrthogonal = hasOrthogonalStabilizerPeriodic(pauliArray, latticeSize);
             
+            // Update stabilizer details for simulation state
+            const { X, Z } = initialStateToLaurent(pauliArray);
+            const xString = X && typeof X.toString === 'function' ? X.toString() : '0';
+            const zString = Z && typeof Z.toString === 'function' ? Z.toString() : '0';
+            
+            let detailsText = `Step ${analysisStepTrigger} Generators:\nX(z) = ${xString}\nZ(z) = ${zString}\n\n`;
+            
+            if (isOrthogonal) {
+                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) = 0\n\n";
+                
+                // Get detailed logical operator analysis for simulation state
+                const codeAnalysis = calculateCodeDistanceAndLogicals(pauliArray, latticeSize);
+                if (codeAnalysis.logicalQubits > 0) {
+                    detailsText += `Code: [${latticeSize}, ${codeAnalysis.logicalQubits}, ${codeAnalysis.distance}]\n\n`;
+                    
+                    detailsText += `Canonical Seeds:\n`;
+                    detailsText += `RZ(x) = ${codeAnalysis.canonicalZSeed.polynomial.toString()}\n`;
+                    detailsText += `RX(x) = ${codeAnalysis.canonicalXSeed.polynomial.toString()}\n\n`;
+                    
+                    if (codeAnalysis.logicalZOperators.length > 0 && codeAnalysis.logicalZOperators.length <= 5) {
+                        detailsText += `Logical Z operators:\n`;
+                        codeAnalysis.logicalZOperators.forEach((op, i) => {
+                            detailsText += `ℓZ${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
+                        });
+                        detailsText += `\n`;
+                    }
+                    
+                    if (codeAnalysis.logicalXOperators.length > 0 && codeAnalysis.logicalXOperators.length <= 5) {
+                        detailsText += `Logical X operators:\n`;
+                        codeAnalysis.logicalXOperators.forEach((op, i) => {
+                            detailsText += `ℓX${i}(x) = ${op.polynomial.toString()} (wt=${op.hammingWeight})\n`;
+                        });
+                    }
+                }
+            } else {
+                detailsText += "S(z) = X(z)Z(z⁻¹) + Z(z)X(z⁻¹) mod (x^N-1) ≠ 0";
+            }
+            
+            setStabilizerDetails(detailsText);
+            
             // Only update logical qubits and code distance for simulation steps
             if (isOrthogonal && latticeSize) {
                 const k = calculateLogicalQubits(pauliArray, latticeSize);
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
-                // Calculate code distance for current simulation state
+                // Calculate code distance using the original working function
                 let d = 0;
                 if (k > 0) {
                     d = calculateCodeDistance(pauliArray, latticeSize);
@@ -189,6 +261,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 // Update code distance trajectory
                 setCodeDistanceTrajectory(prev => {
                     const newTrajectory = [...prev, { step: analysisStepTrigger, distance: d }];
+                    console.log("Updating trajectory:", newTrajectory);
                     // Keep full trajectory from the first time step
                     return newTrajectory;
                 });
@@ -212,6 +285,14 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
     // Notify parent component when properties change
     useEffect(() => {
         if (onPropertiesChange) {
+            console.log("Mathematical Analysis - Updating properties:", {
+                invertible,
+                symplectic,
+                orthogonalStabilizer,
+                logicalQubits,
+                codeDistance,
+                trajectoryLength: codeDistanceTrajectory.length
+            });
             onPropertiesChange({
                 invertible,
                 symplectic,

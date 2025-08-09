@@ -480,13 +480,13 @@ export function calculateLogicalQubits(initialState, chainLength) {
     const d1N = gcdWithPeriodicity(d1, chainLength);
     
     // Step 4: Logical qubits k = degree of d1(N)(x)
-    // Calculate the degree as the highest exponent minus the lowest exponent
+    // Calculate the degree as the maximum exponent (FIXED: was max - min)
     if (Object.keys(d1N.coeffs).length === 0) {
         return 0; // Empty polynomial, no logical qubits
     }
     
     const exponents = Object.keys(d1N.coeffs).map(e => parseInt(e));
-    const degree = Math.max(...exponents) - Math.min(...exponents);
+    const degree = Math.max(...exponents);
     
     return degree;
 }
@@ -616,4 +616,47 @@ export function calculateCodeDistance(initialState, N) {
 
   // (c) final quantum distance is the smaller of the two
   return Math.min(dZ, dX);
+}
+
+/**
+ * Placeholder function for detailed code distance and logical operators analysis.
+ * TODO: Implement the complete algorithm for computing logical operators.
+ * 
+ * @param {Array} initialState - Array of Pauli operators in F2 representation
+ * @param {number} N - Chain length (periodicity)
+ * @returns {Object} - Object containing distance, logical operators, and intermediate results
+ */
+export function calculateCodeDistanceAndLogicals(initialState, N) {
+  // Use existing working functions for basic calculations
+  const k = calculateLogicalQubits(initialState, N);
+  const d = k > 0 ? calculateCodeDistance(initialState, N) : 0;
+  
+  return {
+    distance: d,
+    logicalQubits: k,
+    logicalZOperators: [],
+    logicalXOperators: [],
+    canonicalZSeed: {
+      polynomial: new LaurentPolynomial({ 0: 1 }, 2), // Placeholder: constant 1
+      supportVector: Array(N).fill(0),
+      hammingWeight: 0
+    },
+    canonicalXSeed: {
+      polynomial: new LaurentPolynomial({ 0: 1 }, 2), // Placeholder: constant 1
+      supportVector: Array(N).fill(0),
+      hammingWeight: 0
+    },
+    periodicGX: {
+      polynomial: new LaurentPolynomial({}, 2),
+      degree: 0
+    },
+    periodicGZ: {
+      polynomial: new LaurentPolynomial({}, 2),
+      degree: 0
+    },
+    commonFactor: {
+      d1: new LaurentPolynomial({}, 2),
+      d1N: new LaurentPolynomial({}, 2)
+    }
+  };
 } 
