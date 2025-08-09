@@ -147,6 +147,9 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             // Calculate logical qubits and code distance for initial configuration
             if (isOrthogonal && latticeSize) {
                 const k = calculateLogicalQubits(syntheticState, latticeSize);
+                console.log("=== POLYNOMIAL ANALYSIS (Initial) ===");
+                console.log(`Logical qubits k = ${k}`);
+                
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
@@ -155,6 +158,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 let entanglement = 0;
                 if (k > 0) {
                     d = calculateCodeDistance(syntheticState, latticeSize);
+                    console.log(`Polynomial distance d = ${d}`);
                     console.log("Initial configuration - Code distance calculated:", d);
                     
                     // New binary tableau analysis
@@ -244,6 +248,9 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
             // Only update logical qubits and code distance for simulation steps
             if (isOrthogonal && latticeSize) {
                 const k = calculateLogicalQubits(pauliArray, latticeSize);
+                console.log(`=== POLYNOMIAL ANALYSIS Step ${analysisStepTrigger} ===`);
+                console.log(`Logical qubits k = ${k}`);
+                
                 setLogicalQubits(k);
                 setLogicalQubitsDetails(`k = ${k} logical qubits`);
                 
@@ -252,6 +259,7 @@ export function MathematicalAnalysis({ ruleMatrix, pauliArray, operators, lattic
                 let entanglement = 0;
                 if (k > 0) {
                     d = calculateCodeDistance(pauliArray, latticeSize);
+                    console.log(`Polynomial distance d = ${d}`);
                     console.log("Simulation step - Code distance calculated:", d);
                     
                     // New binary tableau analysis
